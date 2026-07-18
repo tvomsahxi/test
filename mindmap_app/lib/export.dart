@@ -27,6 +27,32 @@ String buildJsonBackup(List<MindMap> maps, {DateTime? now}) {
   return const JsonEncoder.withIndent('  ').convert(data);
 }
 
+/// バックアップJSONを解析してマップ一覧を返す。
+/// 読み取れない場合は日本語メッセージ付きの FormatException を投げる。
+List<MindMap> parseJsonBackup(String text) {
+  final dynamic decoded;
+  try {
+    decoded = jsonDecode(text);
+  } catch (_) {
+    throw const FormatException('JSONとして読み取れませんでした');
+  }
+  if (decoded is! Map<String, dynamic> ||
+      decoded['format'] != 'mindmap-backup') {
+    throw const FormatException('このアプリのバックアップ形式ではありません');
+  }
+  final maps = decoded['maps'];
+  if (maps is! List) {
+    throw const FormatException('バックアップにマップが含まれていません');
+  }
+  try {
+    return maps
+        .map((e) => MindMap.fromJson(e as Map<String, dynamic>))
+        .toList();
+  } catch (_) {
+    throw const FormatException('マップデータの読み取りに失敗しました');
+  }
+}
+
 /// 生成AIに読ませて思考の傾向を分析してもらうためのMarkdownを作る。
 /// 各マップを日付付きのアウトラインとして並べ、冒頭に分析を促す説明を置く。
 String buildAiExport(List<MindMap> maps, {DateTime? now}) {

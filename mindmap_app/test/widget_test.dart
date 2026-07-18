@@ -124,6 +124,33 @@ void main() {
     test('exportTimestamp はファイル名に使える形式', () {
       expect(exportTimestamp(DateTime(2026, 7, 8, 9, 5)), '2026-07-08_0905');
     });
+
+    test('parseJsonBackup はバックアップを読み戻せる', () {
+      final map = MindMap.fromTitle('起点');
+      map.addChild(map.root, '子');
+      final restored = parseJsonBackup(buildJsonBackup([map]));
+      expect(restored.length, 1);
+      expect(restored[0].title, '起点');
+      expect(restored[0].nodes.length, 2);
+    });
+
+    test('parseJsonBackup は壊れた入力に日本語エラーを返す', () {
+      expect(
+        () => parseJsonBackup('これはJSONではない'),
+        throwsA(isA<FormatException>()
+            .having((e) => e.message, 'message', 'JSONとして読み取れませんでした')),
+      );
+      expect(
+        () => parseJsonBackup('{"foo": 1}'),
+        throwsA(isA<FormatException>().having(
+            (e) => e.message, 'message', 'このアプリのバックアップ形式ではありません')),
+      );
+      expect(
+        () => parseJsonBackup('{"format": "mindmap-backup", "maps": [{"bad": 1}]}'),
+        throwsA(isA<FormatException>().having(
+            (e) => e.message, 'message', 'マップデータの読み取りに失敗しました')),
+      );
+    });
   });
 
   group('アプリ操作フロー', () {
@@ -281,8 +308,10 @@ void main() {
       await tester.pumpWidget(const MindMapApp());
       await tester.pumpAndSettle();
 
-      // マップがないときはスナックバーで知らせる
+      // マップがないときに書き出しを選ぶとスナックバーで知らせる
       await tester.tap(find.byIcon(Icons.save_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('JSONでバックアップ'));
       await tester.pumpAndSettle();
       expect(find.text('まだマインドマップがありません'), findsOneWidget);
       // スナックバーが消えるのを待つ(残っていると下部のボタンへのタップを遮る)
@@ -334,6 +363,84 @@ void main() {
       expect(copied, contains('思考分析用エクスポート'));
       expect(copied, contains('## マップ1: 起点'));
       expect(copied, contains('  - 考えたこと'));
+    });
+
+    testWidgets('バックアップから復元できる(追加と置き換え)', (WidgetTester tester) async {
+      final backup = buildJsonBackup([MindMap.fromTitle('復元マップ')]);
+
+      await tester.pumpWidget(const MindMapApp());
+      await tester.pumpAndSettle();
+
+      // 既存マップを1つ作ってホームに戻る
+      await tester.enterText(find.byType(TextField), '起点');
+      await tester.tap(find.text('作成'));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      // 復元(追加): 既存の「起点」に「復元マップ」が加わる
+      await tester.tap(find.byIcon(Icons.save_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('バックアップから復元'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), backup);
+      await tester.tap(find.text('読み込む'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('1個のマップ'), findsOneWidget);
+      await tester.tap(find.text('追加して取り込む(今あるマップは残す)'));
+      await tester.pumpAndSettle();
+      expect(find.text('1個のマップを追加しました'), findsOneWidget);
+      expect(find.text('起点'), findsOneWidget);
+      expect(find.text('復元マップ'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+
+      // 同じバックアップをもう一度「追加」すると重複はスキップされる
+      await tester.tap(find.byIcon(Icons.save_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('バックアップから復元'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), backup);
+      await tester.tap(find.text('読み込む'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('追加して取り込む(今あるマップは残す)'));
+      await tester.pumpAndSettle();
+      expect(find.text('0個のマップを追加しました(1個は既にあるためスキップ)'),
+          findsOneWidget);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+
+      // 復元(置き換え): 確認ダイアログを経て「復元マップ」だけになる
+      await tester.tap(find.byIcon(Icons.save_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('バックアップから復元'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), backup);
+      await tester.tap(find.text('読み込む'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('全て置き換える(今あるマップは削除)'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('置き換えます。よろしいですか?'), findsOneWidget);
+      await tester.tap(find.text('置き換える'));
+      await tester.pumpAndSettle();
+      expect(find.text('1個のマップに置き換えました'), findsOneWidget);
+      expect(find.text('復元マップ'), findsOneWidget);
+      expect(find.text('起点'), findsNothing);
+    });
+
+    testWidgets('壊れたJSONを読み込むとエラーメッセージが出る',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(const MindMapApp());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.save_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('バックアップから復元'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'こわれたデータ');
+      await tester.tap(find.text('読み込む'));
+      await tester.pumpAndSettle();
+      expect(find.text('JSONとして読み取れませんでした'), findsOneWidget);
     });
   });
 }

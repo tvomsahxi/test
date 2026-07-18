@@ -37,6 +37,7 @@
 
 - **JSONでバックアップ** — 全マップを復元可能なJSON形式で書き出す
 - **AI分析用にエクスポート** — 全マップを日付付きのアウトラインにまとめ、冒頭に分析観点の説明を付けたMarkdown。ChatGPTやClaudeなどの生成AIにそのまま貼り付けると、思考の癖や判断の傾向を分析してもらえます
+- **バックアップから復元** — 書き出したJSONを貼り付けて読み戻す。「追加して取り込む」(既存マップは残し、重複はスキップ)と「全て置き換える」(確認あり)が選べます
 
 ## Flutter アプリの実行
 
@@ -63,8 +64,9 @@ mindmap_app/lib/
 ├── main.dart           # アプリ本体・ホーム画面(マップ一覧と新規作成)
 ├── editor_screen.dart  # キャンバス画面(ノード表示・タップ追加・ドラッグ・ズーム)
 ├── outline_screen.dart # リスト(アウトライン)表示・テキストコピー
-├── export.dart         # JSONバックアップ・AI分析用Markdownの生成
+├── export.dart         # JSONバックアップ・AI分析用Markdownの生成・バックアップ解析
 ├── export_screen.dart  # エクスポートのプレビュー・コピー・共有
+├── import_screen.dart  # バックアップJSONの貼り付け・復元
 ├── models.dart         # MindMap / MindNode モデルと子ノードの自動配置ロジック
 └── storage.dart        # shared_preferences への保存・読込
 ```
