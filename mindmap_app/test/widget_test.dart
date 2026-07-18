@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'dart:convert';
+
+import 'package:mindmap_app/export.dart';
 import 'package:mindmap_app/main.dart';
 import 'package:mindmap_app/models.dart';
 
@@ -77,6 +80,49 @@ void main() {
       expect(restored.title, map.title);
       expect(restored.nodes.length, 2);
       expect(restored.nodes[1].parentId, restored.root.id);
+    });
+  });
+
+  group('エクスポート', () {
+    test('buildJsonBackup は復元可能なJSONを作る', () {
+      final map1 = MindMap.fromTitle('起点1');
+      map1.addChild(map1.root, '子');
+      final map2 = MindMap.fromTitle('起点2');
+
+      final json = buildJsonBackup([map1, map2],
+          now: DateTime(2026, 7, 18, 15, 30));
+      final decoded = jsonDecode(json) as Map<String, dynamic>;
+      expect(decoded['format'], 'mindmap-backup');
+      expect(decoded['version'], 1);
+      expect(decoded['mapCount'], 2);
+
+      // maps はそのまま MindMap.fromJson で読み戻せる
+      final restored = (decoded['maps'] as List)
+          .map((e) => MindMap.fromJson(e as Map<String, dynamic>))
+          .toList();
+      expect(restored.length, 2);
+      expect(restored[0].title, '起点1');
+      expect(restored[0].nodes.length, 2);
+      expect(restored[1].title, '起点2');
+    });
+
+    test('buildAiExport は説明文と各マップのアウトラインを含む', () {
+      final map1 = MindMap.fromTitle('遅刻した');
+      map1.addChild(map1.root, '自己判断が原因');
+      final map2 = MindMap.fromTitle('別のテーマ');
+
+      final text = buildAiExport([map1, map2],
+          now: DateTime(2026, 7, 18, 15, 30));
+      expect(text, contains('# マインドマップ 思考分析用エクスポート'));
+      expect(text, contains('分析してください'));
+      expect(text, contains('マップ数: 2'));
+      expect(text, contains('## マップ1: 遅刻した'));
+      expect(text, contains('  - 自己判断が原因'));
+      expect(text, contains('## マップ2: 別のテーマ'));
+    });
+
+    test('exportTimestamp はファイル名に使える形式', () {
+      expect(exportTimestamp(DateTime(2026, 7, 8, 9, 5)), '2026-07-08_0905');
     });
   });
 
@@ -217,6 +263,77 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('リストで振り返る'), findsOneWidget);
       expect(find.text('振り返りたい内容'), findsOneWidget);
+    });
+
+    testWidgets('保存ボタンからJSONバックアップとAI分析用エクスポートができる',
+        (WidgetTester tester) async {
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+
+      await tester.pumpWidget(const MindMapApp());
+      await tester.pumpAndSettle();
+
+      // マップがないときはスナックバーで知らせる
+      await tester.tap(find.byIcon(Icons.save_alt));
+      await tester.pumpAndSettle();
+      expect(find.text('まだマインドマップがありません'), findsOneWidget);
+      // スナックバーが消えるのを待つ(残っていると下部のボタンへのタップを遮る)
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+
+      // マップを1つ作ってホームに戻る
+      await tester.enterText(find.byType(TextField), '起点');
+      await tester.tap(find.text('作成'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+            of: find.byType(InteractiveViewer), matching: find.text('起点')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '考えたこと');
+      await tester.tap(find.text('追加'));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      // JSONバックアップ
+      await tester.tap(find.byIcon(Icons.save_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('JSONでバックアップ'));
+      await tester.pumpAndSettle();
+      expect(find.text('JSONバックアップ'), findsOneWidget);
+      await tester.tap(find.text('コピー'));
+      await tester.pumpAndSettle();
+      final decoded = jsonDecode(copied!) as Map<String, dynamic>;
+      expect(decoded['format'], 'mindmap-backup');
+      expect((decoded['maps'] as List).length, 1);
+
+      // 「コピーしました」スナックバーが消えるのを待ってから次へ
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+
+      // AI分析用エクスポート
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.save_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('AI分析用にエクスポート'));
+      await tester.pumpAndSettle();
+      expect(find.text('AI分析用エクスポート'), findsOneWidget);
+      await tester.tap(find.text('コピー'));
+      await tester.pumpAndSettle();
+      expect(copied, contains('思考分析用エクスポート'));
+      expect(copied, contains('## マップ1: 起点'));
+      expect(copied, contains('  - 考えたこと'));
     });
   });
 }

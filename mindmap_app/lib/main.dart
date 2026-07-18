@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'editor_screen.dart';
+import 'export.dart';
+import 'export_screen.dart';
 import 'models.dart';
 import 'outline_screen.dart';
 import 'storage.dart';
@@ -105,6 +107,69 @@ class _HomeScreenState extends State<HomeScreen> {
   String _fmtDate(DateTime d) =>
       '${d.year}/${d.month}/${d.day} ${d.hour}:${d.minute.toString().padLeft(2, '0')}';
 
+  /// 保存ボタン → バックアップ/エクスポート形式の選択シート
+  Future<void> _showExportMenu() async {
+    if (_maps.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('まだマインドマップがありません')),
+      );
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Text('保存・エクスポート',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.data_object),
+              title: const Text('JSONでバックアップ'),
+              subtitle: const Text('全マップを復元できる形式で書き出す'),
+              onTap: () {
+                Navigator.pop(context);
+                final now = DateTime.now();
+                Navigator.of(this.context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ExportScreen(
+                      title: 'JSONバックアップ',
+                      subject: 'mindmap-backup_${exportTimestamp(now)}.json',
+                      text: buildJsonBackup(_maps, now: now),
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.psychology_outlined),
+              title: const Text('AI分析用にエクスポート'),
+              subtitle: const Text('生成AIに考え方を分析してもらうためのテキスト'),
+              onTap: () {
+                Navigator.pop(context);
+                final now = DateTime.now();
+                Navigator.of(this.context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ExportScreen(
+                      title: 'AI分析用エクスポート',
+                      subject: 'mindmap-analysis_${exportTimestamp(now)}.md',
+                      text: buildAiExport(_maps, now: now),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final sorted = [..._maps]
@@ -113,6 +178,13 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('マインドマップ',
             style: TextStyle(fontWeight: FontWeight.w700)),
+        actions: [
+          IconButton(
+            tooltip: '保存・エクスポート',
+            icon: const Icon(Icons.save_alt),
+            onPressed: _showExportMenu,
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(

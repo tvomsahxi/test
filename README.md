@@ -31,6 +31,13 @@
 
 ホーム一覧またはキャンバス画面の ≡ ボタンから、マップ全体をインデント付きのリストで表示できます。コピー ボタンでテキストとしてクリップボードにコピーできるので、メモアプリやパートナーへの共有にも使えます。
 
+### 保存・エクスポート(Flutter版)
+
+ホーム画面右上の保存ボタンから2種類の書き出しができます。どちらもプレビュー画面で「コピー」(クリップボード)または「共有」(OSの共有シート)を選べます。
+
+- **JSONでバックアップ** — 全マップを復元可能なJSON形式で書き出す
+- **AI分析用にエクスポート** — 全マップを日付付きのアウトラインにまとめ、冒頭に分析観点の説明を付けたMarkdown。ChatGPTやClaudeなどの生成AIにそのまま貼り付けると、思考の癖や判断の傾向を分析してもらえます
+
 ## Flutter アプリの実行
 
 [Flutter SDK](https://docs.flutter.dev/get-started/install) をインストールした上で:
@@ -56,6 +63,8 @@ mindmap_app/lib/
 ├── main.dart           # アプリ本体・ホーム画面(マップ一覧と新規作成)
 ├── editor_screen.dart  # キャンバス画面(ノード表示・タップ追加・ドラッグ・ズーム)
 ├── outline_screen.dart # リスト(アウトライン)表示・テキストコピー
+├── export.dart         # JSONバックアップ・AI分析用Markdownの生成
+├── export_screen.dart  # エクスポートのプレビュー・コピー・共有
 ├── models.dart         # MindMap / MindNode モデルと子ノードの自動配置ロジック
 └── storage.dart        # shared_preferences への保存・読込
 ```
