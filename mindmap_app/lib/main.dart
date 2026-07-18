@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'editor_screen.dart';
 import 'models.dart';
+import 'outline_screen.dart';
 import 'storage.dart';
 
 void main() {
@@ -197,9 +198,28 @@ class _HomeScreenState extends State<HomeScreen> {
                                     '${map.nodes.length}個の四角 ・ ${_fmtDate(map.updatedAt)}',
                                     style: const TextStyle(fontSize: 12),
                                   ),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.delete_outline),
-                                    onPressed: () => _deleteMap(map),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        tooltip: 'リストで振り返る',
+                                        icon: const Icon(
+                                            Icons.format_list_bulleted),
+                                        onPressed: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                                builder: (_) =>
+                                                    OutlineScreen(map: map)),
+                                          );
+                                        },
+                                      ),
+                                      IconButton(
+                                        tooltip: '削除',
+                                        icon:
+                                            const Icon(Icons.delete_outline),
+                                        onPressed: () => _deleteMap(map),
+                                      ),
+                                    ],
                                   ),
                                   onTap: () => _openMap(map),
                                 ),

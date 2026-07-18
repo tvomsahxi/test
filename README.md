@@ -25,7 +25,11 @@
 | ピンチ | ズーム |
 | 🎯 / 中心ボタン | 中心に戻る |
 
-作成したマップは端末に自動保存されます(Flutter版は `shared_preferences`、HTML版は `localStorage`)。
+作成したマップは端末に自動保存され、ホーム画面の一覧からいつでも開き直せます(Flutter版は `shared_preferences`、HTML版は `localStorage`)。
+
+### リストで振り返る(Flutter版)
+
+ホーム一覧またはキャンバス画面の ≡ ボタンから、マップ全体をインデント付きのリストで表示できます。コピー ボタンでテキストとしてクリップボードにコピーできるので、メモアプリやパートナーへの共有にも使えます。
 
 ## Flutter アプリの実行
 
@@ -51,6 +55,7 @@ flutter test
 mindmap_app/lib/
 ├── main.dart           # アプリ本体・ホーム画面(マップ一覧と新規作成)
 ├── editor_screen.dart  # キャンバス画面(ノード表示・タップ追加・ドラッグ・ズーム)
+├── outline_screen.dart # リスト(アウトライン)表示・テキストコピー
 ├── models.dart         # MindMap / MindNode モデルと子ノードの自動配置ロジック
 └── storage.dart        # shared_preferences への保存・読込
 ```

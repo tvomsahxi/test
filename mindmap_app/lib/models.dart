@@ -131,6 +131,26 @@ class MindMap {
     return count;
   }
 
+  /// ルートから深さ優先でたどった (ノード, 深さ) のリスト。
+  /// 振り返り用のアウトライン表示に使う。追加した順に並ぶ。
+  List<(MindNode, int)> outline() {
+    final result = <(MindNode, int)>[];
+    void walk(MindNode node, int depth) {
+      result.add((node, depth));
+      for (final c in childrenOf(node.id)) {
+        walk(c, depth + 1);
+      }
+    }
+
+    walk(root, 0);
+    return result;
+  }
+
+  /// アウトラインをインデント付きテキストにする(コピー・共有用)。
+  String toOutlineText() => outline()
+      .map((e) => '${'  ' * e.$2}- ${e.$1.text.replaceAll('\n', ' ')}')
+      .join('\n');
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'title': title,

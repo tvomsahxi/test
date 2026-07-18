@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -46,6 +47,26 @@ void main() {
       expect(removed, 3);
       expect(map.nodes.length, 2);
       expect(map.nodes.any((n) => n.text == '残る'), isTrue);
+    });
+
+    test('outline はルートから深さ優先で並び、深さを持つ', () {
+      final map = MindMap.fromTitle('起点');
+      final a = map.addChild(map.root, 'a');
+      map.addChild(a, 'a-1');
+      map.addChild(map.root, 'b');
+      final entries = map.outline();
+      expect(entries.map((e) => e.$1.text).toList(), ['起点', 'a', 'a-1', 'b']);
+      expect(entries.map((e) => e.$2).toList(), [0, 1, 2, 1]);
+    });
+
+    test('toOutlineText はインデント付きテキストを作る(改行は空白に置換)', () {
+      final map = MindMap.fromTitle('起点');
+      final a = map.addChild(map.root, 'a');
+      map.addChild(a, '改行\nあり');
+      expect(
+        map.toOutlineText(),
+        '- 起点\n  - a\n    - 改行 あり',
+      );
     });
 
     test('JSON へ往復変換できる', () {
@@ -142,6 +163,60 @@ void main() {
       await tester.tap(find.text('この四角を削除(枝ごと)'));
       await tester.pumpAndSettle();
       expect(find.text('編集後のテキスト'), findsNothing);
+    });
+
+    testWidgets('リスト表示で振り返り、コピーできる', (WidgetTester tester) async {
+      // Clipboard 呼び出しを捕捉する
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+
+      await tester.pumpWidget(const MindMapApp());
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), '起点');
+      await tester.tap(find.text('作成'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.descendant(
+            of: find.byType(InteractiveViewer), matching: find.text('起点')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '振り返りたい内容');
+      await tester.tap(find.text('追加'));
+      await tester.pumpAndSettle();
+
+      // エディタからリスト表示を開く
+      await tester.tap(find.byIcon(Icons.format_list_bulleted));
+      await tester.pumpAndSettle();
+      expect(find.text('リストで振り返る'), findsOneWidget);
+      expect(find.text('起点'), findsOneWidget);
+      expect(find.text('振り返りたい内容'), findsOneWidget);
+
+      // テキストとしてコピー
+      await tester.tap(find.byIcon(Icons.copy_outlined));
+      await tester.pumpAndSettle();
+      expect(copied, '- 起点\n  - 振り返りたい内容');
+      expect(find.text('リストをコピーしました'), findsOneWidget);
+
+      // ホーム一覧のリストボタンからも開ける
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.format_list_bulleted));
+      await tester.pumpAndSettle();
+      expect(find.text('リストで振り返る'), findsOneWidget);
+      expect(find.text('振り返りたい内容'), findsOneWidget);
     });
   });
 }
