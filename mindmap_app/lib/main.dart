@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'editor_screen.dart';
+import 'export.dart';
+import 'export_screen.dart';
+import 'import_screen.dart';
 import 'models.dart';
+import 'outline_screen.dart';
 import 'storage.dart';
 
 void main() {
@@ -104,6 +108,139 @@ class _HomeScreenState extends State<HomeScreen> {
   String _fmtDate(DateTime d) =>
       '${d.year}/${d.month}/${d.day} ${d.hour}:${d.minute.toString().padLeft(2, '0')}';
 
+  /// エクスポート系メニューの共通処理:マップが無ければ知らせて何もしない。
+  void _openExport({required String title, required String subject, required String Function(DateTime) build}) {
+    if (_maps.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('まだマインドマップがありません')),
+      );
+      return;
+    }
+    final now = DateTime.now();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ExportScreen(
+          title: title,
+          subject: subject.replaceAll('{ts}', exportTimestamp(now)),
+          text: build(now),
+        ),
+      ),
+    );
+  }
+
+  /// バックアップJSONからの復元。
+  Future<void> _openImport() async {
+    final request = await Navigator.of(context).push<ImportRequest>(
+      MaterialPageRoute(builder: (_) => const ImportScreen()),
+    );
+    if (request == null || !mounted) return;
+
+    if (request.mode == ImportMode.replace && _maps.isNotEmpty) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(
+            '今ある${_maps.length}個のマップを削除して、バックアップの${request.maps.length}個に置き換えます。よろしいですか?',
+            style: const TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('キャンセル'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('置き換える', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
+
+    var message = '';
+    setState(() {
+      if (request.mode == ImportMode.replace) {
+        _maps = List.of(request.maps);
+        message = '${request.maps.length}個のマップに置き換えました';
+      } else {
+        final existing = _maps.map((m) => m.id).toSet();
+        var added = 0;
+        var skipped = 0;
+        for (final m in request.maps) {
+          if (existing.contains(m.id)) {
+            skipped++;
+          } else {
+            _maps.add(m);
+            added++;
+          }
+        }
+        message = skipped == 0
+            ? '$added個のマップを追加しました'
+            : '$added個のマップを追加しました($skipped個は既にあるためスキップ)';
+      }
+    });
+    await _persist();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// 保存ボタン → バックアップ/エクスポート/復元の選択シート
+  Future<void> _showExportMenu() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Text('保存・エクスポート',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.data_object),
+              title: const Text('JSONでバックアップ'),
+              subtitle: const Text('全マップを復元できる形式で書き出す'),
+              onTap: () {
+                Navigator.pop(context);
+                _openExport(
+                  title: 'JSONバックアップ',
+                  subject: 'mindmap-backup_{ts}.json',
+                  build: (now) => buildJsonBackup(_maps, now: now),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.psychology_outlined),
+              title: const Text('AI分析用にエクスポート'),
+              subtitle: const Text('生成AIに考え方を分析してもらうためのテキスト'),
+              onTap: () {
+                Navigator.pop(context);
+                _openExport(
+                  title: 'AI分析用エクスポート',
+                  subject: 'mindmap-analysis_{ts}.md',
+                  build: (now) => buildAiExport(_maps, now: now),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.restore),
+              title: const Text('バックアップから復元'),
+              subtitle: const Text('書き出したJSONを読み込んで戻す'),
+              onTap: () {
+                Navigator.pop(context);
+                _openImport();
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final sorted = [..._maps]
@@ -112,6 +249,13 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('マインドマップ',
             style: TextStyle(fontWeight: FontWeight.w700)),
+        actions: [
+          IconButton(
+            tooltip: '保存・エクスポート',
+            icon: const Icon(Icons.save_alt),
+            onPressed: _showExportMenu,
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -197,9 +341,28 @@ class _HomeScreenState extends State<HomeScreen> {
                                     '${map.nodes.length}個の四角 ・ ${_fmtDate(map.updatedAt)}',
                                     style: const TextStyle(fontSize: 12),
                                   ),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.delete_outline),
-                                    onPressed: () => _deleteMap(map),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        tooltip: 'リストで振り返る',
+                                        icon: const Icon(
+                                            Icons.format_list_bulleted),
+                                        onPressed: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                                builder: (_) =>
+                                                    OutlineScreen(map: map)),
+                                          );
+                                        },
+                                      ),
+                                      IconButton(
+                                        tooltip: '削除',
+                                        icon:
+                                            const Icon(Icons.delete_outline),
+                                        onPressed: () => _deleteMap(map),
+                                      ),
+                                    ],
                                   ),
                                   onTap: () => _openMap(map),
                                 ),

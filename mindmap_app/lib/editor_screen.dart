@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'main.dart' show accentColor;
 import 'models.dart';
+import 'outline_screen.dart';
 
 /// キャンバスの論理サイズ。中央がノード座標の原点。
 const double _canvasSize = 4000;
@@ -198,6 +199,16 @@ class _EditorScreenState extends State<EditorScreen> {
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         actions: [
+          IconButton(
+            tooltip: 'リストで振り返る',
+            icon: const Icon(Icons.format_list_bulleted),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => OutlineScreen(map: widget.map)),
+              );
+            },
+          ),
           IconButton(
             tooltip: '中心に戻る',
             icon: const Icon(Icons.filter_center_focus),
