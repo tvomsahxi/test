@@ -70,3 +70,8 @@ mindmap_app/lib/
 ├── models.dart         # MindMap / MindNode モデルと子ノードの自動配置ロジック
 └── storage.dart        # shared_preferences への保存・読込
 ```
+
+### ドキュメント
+
+- [外部仕様書](mindmap_app/docs/external_spec.md) — 画面・操作・データの扱い(使う人向け)
+- [内部仕様書](mindmap_app/docs/internal_spec.md) — 実装構造の解説。Flutter/Dart未経験者向けの予備知識、使用した関数・オブジェクトのリファレンス付き(作る人向け)
