@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作業時間トラッカー</title>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --panel: #ffffff;
+    --text: #1f2430;
+    --sub: #6b7280;
+    --accent: #5b7cfa;
+    --accent-dark: #4361d8;
+    --ok: #2f9e6e;
+    --warn: #d99114;
+    --danger: #e05a5a;
+    --border: #c9d2ea;
+    --shadow: 0 2px 8px rgba(30, 40, 80, 0.12);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 16px 16px 48px; }
+  h1 { font-size: 20px; margin: 8px 0 16px; }
+  h2 { font-size: 15px; color: var(--sub); margin: 24px 0 8px; }
+  .panel {
+    background: var(--panel);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 14px;
+  }
+  .new-task { display: flex; flex-direction: column; gap: 10px; }
+  .new-task input[type="text"], .new-task input[type="number"] {
+    font: inherit;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 100%;
+  }
+  .estimate-row { display: flex; align-items: center; gap: 8px; }
+  .estimate-row input { width: 110px; }
+  .estimate-row .hint { font-size: 12px; color: var(--sub); }
+  button {
+    font: inherit;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    background: #e8ecf7;
+    color: var(--text);
+  }
+  button:active { transform: translateY(1px); }
+  button.primary { background: var(--accent); color: #fff; font-weight: 600; }
+  button.primary:hover { background: var(--accent-dark); }
+  button.danger-link { background: none; color: var(--danger); padding: 6px 8px; font-size: 13px; }
+  button.small { padding: 6px 12px; font-size: 13px; }
+
+  .task {
+    background: var(--panel);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .task .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .task .name { font-weight: 600; word-break: break-word; }
+  .task .time { font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 700; }
+  .task.running .time { color: var(--accent-dark); }
+  .task .meta { font-size: 12px; color: var(--sub); margin-top: 4px; }
+  .task .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .bar { height: 6px; background: #e8ecf7; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .bar > div { height: 100%; border-radius: 3px; background: var(--ok); transition: width 0.3s; }
+  .bar > div.over { background: var(--danger); }
+  .badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 2px 10px;
+    color: #fff;
+  }
+  .badge.ok { background: var(--ok); }
+  .badge.warn { background: var(--warn); }
+  .badge.over { background: var(--danger); }
+  .badge.none { background: #9aa3b5; }
+  .hist-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .hist-main { min-width: 0; }
+  .empty { color: var(--sub); font-size: 14px; padding: 12px 4px; }
+  .export-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+
+  .modal-back {
+    position: fixed; inset: 0;
+    background: rgba(20, 25, 40, 0.45);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .modal-back.show { display: flex; }
+  .modal {
+    background: var(--panel);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 16px;
+    width: 100%;
+    max-width: 640px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .modal h3 { font-size: 16px; }
+  .modal textarea {
+    font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    width: 100%;
+    flex: 1;
+    min-height: 300px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    resize: vertical;
+    white-space: pre;
+  }
+  .modal .row { display: flex; gap: 8px; justify-content: flex-end; }
+  .copied { color: var(--ok); font-size: 13px; align-self: center; margin-right: auto; visibility: hidden; }
+  .copied.show { visibility: visible; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⏱ 作業時間トラッカー</h1>
+
+  <div class="panel">
+    <form class="new-task" id="newTaskForm">
+      <input type="text" id="taskName" placeholder="作業名(例: 資料作成)" maxlength="100" required>
+      <div class="estimate-row">
+        <input type="number" id="taskEstimate" placeholder="見積もり" min="1" max="6000" step="1">
+        <span class="hint">分(任意。空欄なら見積もりなしで開始)</span>
+      </div>
+      <button type="submit" class="primary">▶ 開始</button>
+    </form>
+  </div>
+
+  <h2>進行中の作業</h2>
+  <div id="activeList"></div>
+
+  <h2>完了した作業</h2>
+  <div id="historyList"></div>
+
+  <div class="export-actions">
+    <button id="exportBtn" class="primary">🤖 AI分析用テキストを作る</button>
+    <button id="clearBtn" class="danger-link">履歴を全て削除</button>
+  </div>
+</div>
+
+<div class="modal-back" id="modalBack">
+  <div class="modal">
+    <h3>AI分析用テキスト</h3>
+    <p style="font-size:13px;color:var(--sub)">下のテキストをコピーして、ChatGPT や Claude などの生成AIチャットに貼り付けてください。</p>
+    <textarea id="exportText" readonly></textarea>
+    <div class="row">
+      <span class="copied" id="copiedMsg">コピーしました ✓</span>
+      <button id="copyBtn" class="primary">コピー</button>
+      <button id="closeModal">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const STORAGE_KEY = 'timetracker.tasks.v1';
+
+  /** @type {Array<{id:string,name:string,estimateMin:number|null,status:'running'|'paused'|'done',accumulatedSec:number,runningSince:number|null,startedAt:number,completedAt:number|null}>} */
+  let tasks = load();
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  }
+
+  function now() { return Date.now(); }
+  function uid() { return now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+  function elapsedSec(t) {
+    let s = t.accumulatedSec;
+    if (t.status === 'running' && t.runningSince) s += (now() - t.runningSince) / 1000;
+    return Math.floor(s);
+  }
+  function fmtClock(sec) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    const mm = String(m).padStart(2, '0');
+    const ss = String(s).padStart(2, '0');
+    return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+  }
+  function fmtMin(sec) {
+    const min = Math.round(sec / 60);
+    if (min < 60) return `${min}分`;
+    return `${Math.floor(min / 60)}時間${min % 60 ? (min % 60) + '分' : ''}`;
+  }
+  function fmtDate(ts) {
+    const d = new Date(ts);
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }
+  function fmtTime(ts) {
+    const d = new Date(ts);
+    const p = (n) => String(n).padStart(2, '0');
+    return `${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+  function esc(s) {
+    return s.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function ratioPct(t) {
+    if (t.estimateMin == null) return null;
+    return Math.round(elapsedSec(t) / (t.estimateMin * 60) * 100);
+  }
+  function ratioBadge(t) {
+    const pct = ratioPct(t);
+    if (pct == null) return '<span class="badge none">見積なし</span>';
+    const cls = pct <= 100 ? 'ok' : pct <= 120 ? 'warn' : 'over';
+    return `<span class="badge ${cls}">見積比 ${pct}%</span>`;
+  }
+
+  // ---- 操作 ----
+  function startTask(name, estimateMin) {
+    // 同時に走るのは1つだけ:走っている作業は一時停止する
+    for (const t of tasks) if (t.status === 'running') pause(t);
+    tasks.unshift({
+      id: uid(), name, estimateMin,
+      status: 'running', accumulatedSec: 0,
+      runningSince: now(), startedAt: now(), completedAt: null,
+    });
+    save(); render();
+  }
+  function pause(t) {
+    if (t.status !== 'running') return;
+    t.accumulatedSec += (now() - t.runningSince) / 1000;
+    t.runningSince = null;
+    t.status = 'paused';
+  }
+  function resume(t) {
+    for (const other of tasks) if (other.status === 'running') pause(other);
+    t.status = 'running';
+    t.runningSince = now();
+  }
+  function finish(t) {
+    pause(t);
+    t.status = 'done';
+    t.completedAt = now();
+  }
+  function removeTask(id) {
+    tasks = tasks.filter((t) => t.id !== id);
+    save(); render();
+  }
+
+  // ---- 描画 ----
+  const activeList = document.getElementById('activeList');
+  const historyList = document.getElementById('historyList');
+
+  function render() {
+    const active = tasks.filter((t) => t.status !== 'done');
+    const done = tasks.filter((t) => t.status === 'done')
+      .sort((a, b) => b.completedAt - a.completedAt);
+
+    activeList.innerHTML = active.length ? active.map((t) => {
+      const sec = elapsedSec(t);
+      const pct = ratioPct(t);
+      const bar = t.estimateMin == null ? '' :
+        `<div class="bar"><div class="${pct > 100 ? 'over' : ''}" style="width:${Math.min(pct, 100)}%"></div></div>`;
+      return `
+      <div class="task ${t.status}" data-id="${t.id}">
+        <div class="top">
+          <span class="name">${esc(t.name)}</span>
+          <span class="time" data-time>${fmtClock(sec)}</span>
+        </div>
+        <div class="meta">
+          ${t.estimateMin != null ? `見積もり ${t.estimateMin}分 ・ ` : ''}${fmtTime(t.startedAt)} 開始
+          ${t.status === 'paused' ? ' ・ ⏸ 一時停止中' : ''}
+        </div>
+        ${bar}
+        <div class="actions">
+          ${t.status === 'running'
+            ? `<button class="small" data-act="pause">⏸ 一時停止</button>`
+            : `<button class="small primary" data-act="resume">▶ 再開</button>`}
+          <button class="small" data-act="finish">✔ 完了</button>
+          <button class="danger-link small" data-act="delete">削除</button>
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty">進行中の作業はありません。上のフォームから開始してください。</div>';
+
+    historyList.innerHTML = done.length ? done.map((t) => `
+      <div class="task">
+        <div class="hist-row" data-id="${t.id}">
+          <div class="hist-main">
+            <div class="name">${esc(t.name)}</div>
+            <div class="meta">${fmtDate(t.completedAt)} ・ 実績 ${fmtMin(t.accumulatedSec)}${t.estimateMin != null ? ` ・ 見積もり ${t.estimateMin}分` : ''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            ${ratioBadge(t)}
+            <button class="danger-link small" data-act="delete">削除</button>
+          </div>
+        </div>
+      </div>`).join('') : '<div class="empty">まだ完了した作業はありません。</div>';
+  }
+
+  // 1秒ごとに進行中のタイマー表示だけ更新
+  setInterval(() => {
+    for (const el of activeList.querySelectorAll('.task.running')) {
+      const t = tasks.find((x) => x.id === el.dataset.id);
+      if (t) el.querySelector('[data-time]').textContent = fmtClock(elapsedSec(t));
+    }
+  }, 1000);
+
+  // ---- イベント ----
+  document.getElementById('newTaskForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const nameInput = document.getElementById('taskName');
+    const estInput = document.getElementById('taskEstimate');
+    const name = nameInput.value.trim();
+    if (!name) return;
+    const est = estInput.value === '' ? null : Math.max(1, Math.floor(Number(estInput.value)));
+    startTask(name, Number.isFinite(est) ? est : null);
+    nameInput.value = '';
+    estInput.value = '';
+    nameInput.focus();
+  });
+
+  function handleAction(e) {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const id = btn.closest('[data-id]').dataset.id;
+    const t = tasks.find((x) => x.id === id);
+    if (!t) return;
+    const act = btn.dataset.act;
+    if (act === 'pause') pause(t);
+    else if (act === 'resume') resume(t);
+    else if (act === 'finish') finish(t);
+    else if (act === 'delete') {
+      if (!confirm(`「${t.name}」を削除しますか?`)) return;
+      removeTask(id);
+      return;
+    }
+    save(); render();
+  }
+  activeList.addEventListener('click', handleAction);
+  historyList.addEventListener('click', handleAction);
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (!tasks.length) return;
+    if (!confirm('全ての作業記録を削除しますか?この操作は元に戻せません。')) return;
+    tasks = [];
+    save(); render();
+  });
+
+  // ---- AI分析用エクスポート ----
+  function buildExportText() {
+    const done = tasks.filter((t) => t.status === 'done')
+      .sort((a, b) => a.completedAt - b.completedAt);
+    const active = tasks.filter((t) => t.status !== 'done');
+
+    const lines = [];
+    lines.push('# 作業時間の記録(AI分析用)');
+    lines.push('');
+    lines.push('以下は私の作業時間の記録です。生産性コーチとして、次の観点で分析してください。');
+    lines.push('');
+    lines.push('- 見積もりと実績のズレの傾向(過小/過大見積もりの癖)');
+    lines.push('- 作業の種類や時間帯ごとの効率のパターン');
+    lines.push('- 作業効率を上げるための具体的な改善提案');
+    lines.push('');
+    lines.push('## 記録');
+    lines.push('');
+    lines.push('形式: 日付 | 作業名 | 見積もり | 実績 | 見積比 | 開始→終了時刻');
+    lines.push('');
+    if (!done.length) {
+      lines.push('(完了した作業はまだありません)');
+    }
+    for (const t of done) {
+      const actualMin = Math.round(t.accumulatedSec / 60);
+      const est = t.estimateMin != null ? `${t.estimateMin}分` : 'なし';
+      const ratio = t.estimateMin != null ? `${Math.round(actualMin / t.estimateMin * 100)}%` : '-';
+      lines.push(`- ${fmtDate(t.completedAt)} | ${t.name} | 見積: ${est} | 実績: ${actualMin}分 | 見積比: ${ratio} | ${fmtTime(t.startedAt)}→${fmtTime(t.completedAt)}`);
+    }
+    if (active.length) {
+      lines.push('');
+      lines.push('## 進行中(未完了)');
+      lines.push('');
+      for (const t of active) {
+        const est = t.estimateMin != null ? `${t.estimateMin}分` : 'なし';
+        lines.push(`- ${fmtDate(t.startedAt)} | ${t.name} | 見積: ${est} | 経過: ${Math.round(elapsedSec(t) / 60)}分 | ${fmtTime(t.startedAt)}開始`);
+      }
+    }
+    lines.push('');
+    return lines.join('\n');
+  }
+
+  const modalBack = document.getElementById('modalBack');
+  const exportText = document.getElementById('exportText');
+  const copiedMsg = document.getElementById('copiedMsg');
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    exportText.value = buildExportText();
+    copiedMsg.classList.remove('show');
+    modalBack.classList.add('show');
+  });
+  document.getElementById('closeModal').addEventListener('click', () => modalBack.classList.remove('show'));
+  modalBack.addEventListener('click', (e) => { if (e.target === modalBack) modalBack.classList.remove('show'); });
+
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(exportText.value);
+    } catch (e) {
+      exportText.select();
+      document.execCommand('copy');
+    }
+    copiedMsg.classList.add('show');
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
