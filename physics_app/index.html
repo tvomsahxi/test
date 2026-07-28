@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>高校物理ビジュアル学習</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --panel: #ffffff;
+    --ink: #1f2937;
+    --sub: #6b7280;
+    --line: #d7dce6;
+    --blue: #2563eb;
+    --red: #dc2626;
+    --green: #059669;
+    --orange: #ea580c;
+    --purple: #7c3aed;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  header {
+    background: #1e3a8a;
+    color: #fff;
+    padding: 14px 20px 10px;
+  }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 4px 0 0; font-size: 12px; opacity: .85; }
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 16px;
+    background: #1e3a8a;
+  }
+  nav button {
+    border: none;
+    border-radius: 16px;
+    padding: 7px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    background: rgba(255,255,255,.15);
+    color: #fff;
+  }
+  nav button.active { background: #fff; color: #1e3a8a; font-weight: bold; }
+  main { max-width: 1060px; margin: 0 auto; padding: 16px; }
+  section.panel { display: none; }
+  section.panel.active { display: block; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  h2 { margin: 0 0 4px; font-size: 18px; }
+  .unit-tag {
+    display: inline-block;
+    font-size: 11px;
+    background: #dbeafe;
+    color: #1e40af;
+    border-radius: 4px;
+    padding: 2px 8px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .desc { margin: 6px 0 0; font-size: 13px; color: var(--sub); line-height: 1.7; }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 24px;
+    align-items: center;
+  }
+  .slider-block { min-width: 220px; }
+  .slider-block label { font-size: 13px; display: flex; justify-content: space-between; }
+  .slider-block .val { font-weight: bold; color: var(--blue); font-variant-numeric: tabular-nums; }
+  .slider-block input[type=range] { width: 100%; }
+  .btns { display: flex; gap: 8px; }
+  .btns button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .btns button.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .formula {
+    font-family: "Times New Roman", "Hiragino Mincho ProN", serif;
+    font-size: 15px;
+    line-height: 2.0;
+    background: #f8fafc;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .formula b { color: var(--red); font-weight: bold; }
+  .formula .lit { color: var(--blue); font-weight: bold; }
+  .canvas-row { display: flex; flex-wrap: wrap; gap: 14px; }
+  .canvas-box { flex: 1 1 320px; min-width: 300px; }
+  .canvas-box h3 { margin: 0 0 6px; font-size: 13px; color: var(--sub); font-weight: normal; }
+  canvas {
+    width: 100%;
+    height: auto;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: block;
+  }
+  table.map { border-collapse: collapse; font-size: 13px; width: 100%; }
+  table.map th, table.map td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; }
+  table.map th { background: #eef2ff; }
+  footer { text-align: center; font-size: 12px; color: var(--sub); padding: 20px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>高校物理ビジュアル学習</h1>
+  <p>スライダーで数値を変えると、式に代入された値とグラフ・アニメーションが連動して動きます</p>
+</header>
+
+<nav id="tabs"></nav>
+
+<main id="main">
+
+  <!-- ===== はじめに ===== -->
+  <section class="panel" id="p-home">
+    <div class="card">
+      <h2>このアプリについて</h2>
+      <p class="desc">
+        日本の高校物理(主に<b>物理基礎</b>、一部「物理」)の基本法則を、
+        「式 → 数値代入 → グラフ・運動のようす」のつながりで視覚的に学ぶためのアプリです。<br>
+        上のタブから単元を選び、スライダーを動かしてみてください。
+        式の中の数値・グラフ・アニメーションがすべて同時に変化します。
+      </p>
+    </div>
+    <div class="card">
+      <h2>単元との対応</h2>
+      <table class="map">
+        <tr><th>タブ</th><th>科目</th><th>学習指導要領上の単元</th><th>主な式</th></tr>
+        <tr><td>等加速度直線運動</td><td>物理基礎</td><td>運動の表し方</td><td>v = v₀ + at,  x = v₀t + ½at²</td></tr>
+        <tr><td>放物運動</td><td>物理</td><td>平面内の運動</td><td>x = v₀cosθ·t,  y = v₀sinθ·t − ½gt²</td></tr>
+        <tr><td>力学的エネルギー</td><td>物理基礎</td><td>仕事とエネルギー</td><td>mgh = ½mv² + mgh′</td></tr>
+        <tr><td>単振動</td><td>物理</td><td>円運動と単振動</td><td>x = A sin ωt,  T = 2π√(m/k)</td></tr>
+        <tr><td>波</td><td>物理基礎</td><td>波の性質</td><td>v = fλ,  y = A sin 2π(t/T − x/λ)</td></tr>
+        <tr><td>オームの法則</td><td>物理基礎</td><td>電気</td><td>V = RI,  P = VI</td></tr>
+      </table>
+      <p class="desc">グラフの読み方のポイント:<b>v-tグラフの傾き=加速度、面積=変位</b>。波では<b>y-xグラフ(ある時刻の波の形)とy-tグラフ(ある場所の振動)</b>の区別が最重要です。</p>
+    </div>
+  </section>
+
+  <!-- ===== 1. 等加速度直線運動 ===== -->
+  <section class="panel" id="p-accel">
+    <div class="card">
+      <h2>等加速度直線運動<span class="unit-tag">物理基礎</span></h2>
+      <p class="desc">初速度 v₀、加速度 a を変えると、速度・位置の式とグラフが変わります。
+        <b style="color:var(--blue)">v-tグラフの塗られた面積が変位 x</b> になっていることを確かめましょう(a&lt;0 で折り返す運動も試してみてください)。</p>
+    </div>
+    <div class="card">
+      <div class="controls" id="accel-controls"></div>
+      <div class="formula" id="accel-formula"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-box" style="margin-bottom:12px">
+        <h3>運動のようす(数直線上)</h3>
+        <canvas id="accel-sim" width="1000" height="120"></canvas>
+      </div>
+      <div class="canvas-row">
+        <div class="canvas-box"><h3>v-t グラフ(面積 = 変位)</h3><canvas id="accel-vt" width="480" height="300"></canvas></div>
+        <div class="canvas-box"><h3>x-t グラフ</h3><canvas id="accel-xt" width="480" height="300"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 2. 放物運動 ===== -->
+  <section class="panel" id="p-proj">
+    <div class="card">
+      <h2>放物運動(斜方投射)<span class="unit-tag">物理</span></h2>
+      <p class="desc">水平方向は<b>等速直線運動</b>、鉛直方向は<b>投げ上げ(等加速度運動)</b>に分解できます。
+        矢印は速度の成分(緑:水平 vₓ、橙:鉛直 v_y、赤:合成)。角度45°のとき水平到達距離が最大になることを確かめましょう。</p>
+    </div>
+    <div class="card">
+      <div class="controls" id="proj-controls"></div>
+      <div class="formula" id="proj-formula"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-row">
+        <div class="canvas-box" style="flex:2 1 420px"><h3>軌道(x-y)</h3><canvas id="proj-sim" width="620" height="340"></canvas></div>
+        <div class="canvas-box"><h3>y-t グラフ(鉛直方向は投げ上げと同じ)</h3><canvas id="proj-yt" width="420" height="340"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 3. 力学的エネルギー ===== -->
+  <section class="panel" id="p-energy">
+    <div class="card">
+      <h2>力学的エネルギー保存(自由落下)<span class="unit-tag">物理基礎</span></h2>
+      <p class="desc">高さ h から質量 m の球を静かに落とします。落下中、<b style="color:var(--orange)">位置エネルギー U</b> が
+        <b style="color:var(--green)">運動エネルギー K</b> に変わりますが、合計 <b>E = K + U</b> は一定です(棒グラフで確認)。</p>
+    </div>
+    <div class="card">
+      <div class="controls" id="energy-controls"></div>
+      <div class="formula" id="energy-formula"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-row">
+        <div class="canvas-box" style="flex:0 1 260px;min-width:220px"><h3>落下のようす</h3><canvas id="energy-sim" width="240" height="340"></canvas></div>
+        <div class="canvas-box"><h3>エネルギーの内訳(棒グラフ)</h3><canvas id="energy-bar" width="420" height="340"></canvas></div>
+        <div class="canvas-box"><h3>K・U・E と高さの関係</h3><canvas id="energy-graph" width="420" height="340"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 4. 単振動 ===== -->
+  <section class="panel" id="p-shm">
+    <div class="card">
+      <h2>単振動(ばね振り子)<span class="unit-tag">物理</span></h2>
+      <p class="desc">なめらかな水平面上で、ばね定数 k のばねにつけた質量 m の物体を振幅 A で振動させます。
+        周期は <b>T = 2π√(m/k)</b>。m を大きくすると周期は長く、k を大きくすると短くなります(A を変えても周期は変わらない=等時性)。</p>
+    </div>
+    <div class="card">
+      <div class="controls" id="shm-controls"></div>
+      <div class="formula" id="shm-formula"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-box" style="margin-bottom:12px">
+        <h3>ばねと物体の運動</h3>
+        <canvas id="shm-sim" width="1000" height="130"></canvas>
+      </div>
+      <div class="canvas-box"><h3>x-t グラフ(変位 x = A sin ωt)</h3><canvas id="shm-xt" width="1000" height="280"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ===== 5. 波 ===== -->
+  <section class="panel" id="p-wave">
+    <div class="card">
+      <h2>波の性質<span class="unit-tag">物理基礎</span></h2>
+      <p class="desc">x 軸正の向きに進む正弦波です。<b>波は形が進むだけで、媒質(赤い点)はその場で上下に振動する</b>ことに注目。
+        上の図は「ある時刻の波の形」=<b>y-xグラフ</b>、下の図は「赤い点の位置の時間変化」=<b>y-tグラフ</b>です。v = fλ の関係も確かめましょう。</p>
+    </div>
+    <div class="card">
+      <div class="controls" id="wave-controls"></div>
+      <div class="formula" id="wave-formula"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-box" style="margin-bottom:12px">
+        <h3>y-x グラフ(ある時刻の波形。赤い点=媒質の1点)</h3>
+        <canvas id="wave-yx" width="1000" height="240"></canvas>
+      </div>
+      <div class="canvas-box"><h3>y-t グラフ(赤い点の振動。周期 T = 1/f)</h3><canvas id="wave-yt" width="1000" height="240"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ===== 6. オームの法則 ===== -->
+  <section class="panel" id="p-ohm">
+    <div class="card">
+      <h2>オームの法則<span class="unit-tag">物理基礎</span></h2>
+      <p class="desc">抵抗 R の両端に電圧 V を加えると、電流 I = V/R が流れます。
+        回路図の点の速さは電流の大きさを表します。<b>I-Vグラフは原点を通る直線で、傾きが 1/R</b>(Rが大きいほど電流は流れにくい)。</p>
+    </div>
+    <div class="card">
+      <div class="controls" id="ohm-controls"></div>
+      <div class="formula" id="ohm-formula"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-row">
+        <div class="canvas-box"><h3>回路(点の速さ ∝ 電流)</h3><canvas id="ohm-sim" width="480" height="320"></canvas></div>
+        <div class="canvas-box"><h3>I-V グラフ(傾き = 1/R)</h3><canvas id="ohm-graph" width="480" height="320"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>高校物理ビジュアル学習 — 物理基礎・物理の基本法則をグラフで体感する</footer>
+
+<script>
+"use strict";
+
+/* ---------- 共通ユーティリティ ---------- */
+
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 1) => (Math.round(x * 10 ** d) / 10 ** d).toFixed(d);
+
+function niceStep(range) {
+  const raw = range / 5;
+  const p = 10 ** Math.floor(Math.log10(raw));
+  const r = raw / p;
+  return (r < 1.5 ? 1 : r < 3.5 ? 2 : r < 7.5 ? 5 : 10) * p;
+}
+
+/* 2Dグラフ描画ヘルパー */
+function makeGraph(canvas, opts) {
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  const pad = { l: 52, r: 14, t: 14, b: 34 };
+  let xmin = 0, xmax = 1, ymin = 0, ymax = 1;
+  const g = {
+    ctx,
+    setRange(x0, x1, y0, y1) { xmin = x0; xmax = x1; ymin = y0; ymax = y1; },
+    px: x => pad.l + (x - xmin) / (xmax - xmin) * (W - pad.l - pad.r),
+    py: y => H - pad.b - (y - ymin) / (ymax - ymin) * (H - pad.t - pad.b),
+    clear() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.save();
+      // 目盛りとグリッド
+      ctx.font = "11px sans-serif";
+      ctx.fillStyle = "#6b7280";
+      ctx.strokeStyle = "#eef1f6";
+      ctx.lineWidth = 1;
+      const sx = niceStep(xmax - xmin);
+      for (let x = Math.ceil(xmin / sx) * sx; x <= xmax + 1e-9; x += sx) {
+        const p = g.px(x);
+        ctx.beginPath(); ctx.moveTo(p, pad.t); ctx.lineTo(p, H - pad.b); ctx.stroke();
+        ctx.textAlign = "center";
+        ctx.fillText(fmt(x, sx < 1 ? 1 : 0), p, H - pad.b + 16);
+      }
+      const sy = niceStep(ymax - ymin);
+      for (let y = Math.ceil(ymin / sy) * sy; y <= ymax + 1e-9; y += sy) {
+        const p = g.py(y);
+        ctx.beginPath(); ctx.moveTo(pad.l, p); ctx.lineTo(W - pad.r, p); ctx.stroke();
+        ctx.textAlign = "right";
+        ctx.fillText(fmt(y, sy < 1 ? 1 : 0), pad.l - 6, p + 4);
+      }
+      // 軸(y=0, x=0 が範囲内なら濃く)
+      ctx.strokeStyle = "#9ca3af";
+      if (ymin <= 0 && ymax >= 0) {
+        ctx.beginPath(); ctx.moveTo(pad.l, g.py(0)); ctx.lineTo(W - pad.r, g.py(0)); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H - pad.b); ctx.stroke();
+      // 軸ラベル
+      ctx.fillStyle = "#374151";
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(opts.xlabel, W - pad.r, H - 6);
+      ctx.textAlign = "left";
+      ctx.fillText(opts.ylabel, 6, pad.t + 2);
+      ctx.restore();
+    },
+    plot(fn, t0, t1, color, width = 2, dash = null) {
+      ctx.save();
+      ctx.strokeStyle = color; ctx.lineWidth = width;
+      if (dash) ctx.setLineDash(dash);
+      ctx.beginPath();
+      const N = 200;
+      for (let i = 0; i <= N; i++) {
+        const t = t0 + (t1 - t0) * i / N;
+        const x = g.px(t), y = g.py(fn(t));
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    },
+    area(fn, t0, t1, color) {
+      if (t1 <= t0) return;
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      const N = 120;
+      ctx.moveTo(g.px(t0), g.py(0));
+      for (let i = 0; i <= N; i++) {
+        const t = t0 + (t1 - t0) * i / N;
+        ctx.lineTo(g.px(t), g.py(fn(t)));
+      }
+      ctx.lineTo(g.px(t1), g.py(0));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    },
+    dot(x, y, color, r = 6) {
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(g.px(x), g.py(y), r, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    },
+    guide(x, y, color) { // 現在点から軸へ点線
+      ctx.save();
+      ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(g.px(x), g.py(y)); ctx.lineTo(g.px(x), g.py(Math.max(ymin, Math.min(ymax, 0))));
+      ctx.moveTo(g.px(x), g.py(y)); ctx.lineTo(pad.l, g.py(y));
+      ctx.stroke();
+      ctx.restore();
+    }
+  };
+  return g;
+}
+
+/* スライダー生成:{get()} を返す */
+function makeSlider(container, { label, unit, min, max, step, value, digits = 1, onchange }) {
+  const block = document.createElement("div");
+  block.className = "slider-block";
+  const lab = document.createElement("label");
+  const name = document.createElement("span");
+  name.innerHTML = label;
+  const val = document.createElement("span");
+  val.className = "val";
+  lab.append(name, val);
+  const input = document.createElement("input");
+  input.type = "range";
+  input.min = min; input.max = max; input.step = step; input.value = value;
+  const show = () => { val.textContent = fmt(+input.value, digits) + " " + unit; };
+  input.addEventListener("input", () => { show(); onchange && onchange(); });
+  show();
+  block.append(lab, input);
+  container.appendChild(block);
+  return { get: () => +input.value };
+}
+
+/* 再生/一時停止/リセットボタン */
+function makeControls(container, mod) {
+  const box = document.createElement("div");
+  box.className = "btns";
+  const play = document.createElement("button");
+  play.className = "primary";
+  const reset = document.createElement("button");
+  reset.textContent = "リセット";
+  const sync = () => { play.textContent = mod.playing ? "⏸ 一時停止" : "▶ 再生"; };
+  play.addEventListener("click", () => { mod.playing = !mod.playing; sync(); });
+  reset.addEventListener("click", () => { mod.t = 0; mod.playing = true; sync(); mod.render(); });
+  mod.syncPlayBtn = sync;
+  sync();
+  box.append(play, reset);
+  container.appendChild(box);
+}
+
+function arrow(ctx, x0, y0, x1, y1, color, width = 2.5) {
+  const dx = x1 - x0, dy = y1 - y0;
+  const len = Math.hypot(dx, dy);
+  if (len < 2) return;
+  const ang = Math.atan2(dy, dx);
+  ctx.save();
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 9 * Math.cos(ang - 0.4), y1 - 9 * Math.sin(ang - 0.4));
+  ctx.lineTo(x1 - 9 * Math.cos(ang + 0.4), y1 - 9 * Math.sin(ang + 0.4));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawSpring(ctx, x0, y, x1, coils, amp) {
+  ctx.beginPath();
+  ctx.moveTo(x0, y);
+  const N = coils * 2;
+  for (let i = 1; i < N; i++) {
+    const x = x0 + (x1 - x0) * i / N;
+    ctx.lineTo(x, y + (i % 2 ? -amp : amp));
+  }
+  ctx.lineTo(x1, y);
+  ctx.stroke();
+}
+
+const G = 9.8;
+const modules = {};
+let activeId = null;
+
+/* ---------- 1. 等加速度直線運動 ---------- */
+(() => {
+  const mod = { t: 0, playing: true, tmax: 8 };
+  const ctrl = $("accel-controls");
+  const v0s = makeSlider(ctrl, { label: "初速度 v₀", unit: "m/s", min: -10, max: 10, step: 0.5, value: 2, onchange: () => { mod.t = 0; } });
+  const as = makeSlider(ctrl, { label: "加速度 a", unit: "m/s²", min: -5, max: 5, step: 0.5, value: 1, onchange: () => { mod.t = 0; } });
+  makeControls(ctrl, mod);
+
+  const gv = makeGraph($("accel-vt"), { xlabel: "t [s]", ylabel: "v [m/s]" });
+  const gx = makeGraph($("accel-xt"), { xlabel: "t [s]", ylabel: "x [m]" });
+  const sim = $("accel-sim"), sctx = sim.getContext("2d");
+
+  mod.step = dt => { mod.t = (mod.t + dt) % mod.tmax; };
+  mod.render = () => {
+    const v0 = v0s.get(), a = as.get(), t = mod.t;
+    const v = tt => v0 + a * tt;
+    const x = tt => v0 * tt + 0.5 * a * tt * tt;
+
+    // 範囲を計算
+    let xmin = 0, xmax = 0, vmin = 0, vmax = 0;
+    for (let i = 0; i <= 40; i++) {
+      const tt = mod.tmax * i / 40;
+      xmin = Math.min(xmin, x(tt)); xmax = Math.max(xmax, x(tt));
+      vmin = Math.min(vmin, v(tt)); vmax = Math.max(vmax, v(tt));
+    }
+    const padr = r => Math.max(r * 0.15, 1);
+
+    gv.setRange(0, mod.tmax, vmin - padr(vmax - vmin), vmax + padr(vmax - vmin));
+    gv.clear();
+    gv.area(v, 0, t, "rgba(37,99,235,.18)");
+    gv.plot(v, 0, mod.tmax, "#2563eb");
+    gv.guide(t, v(t), "#2563eb");
+    gv.dot(t, v(t), "#2563eb");
+
+    gx.setRange(0, mod.tmax, xmin - padr(xmax - xmin), xmax + padr(xmax - xmin));
+    gx.clear();
+    gx.plot(x, 0, mod.tmax, "#dc2626");
+    gx.guide(t, x(t), "#dc2626");
+    gx.dot(t, x(t), "#dc2626");
+
+    // 数直線アニメーション
+    const W = sim.width, H = sim.height;
+    sctx.clearRect(0, 0, W, H);
+    const span = Math.max(xmax - xmin, 1);
+    const sx = X => 30 + (X - xmin) / span * (W - 60);
+    sctx.strokeStyle = "#9ca3af"; sctx.lineWidth = 2;
+    sctx.beginPath(); sctx.moveTo(20, H - 30); sctx.lineTo(W - 20, H - 30); sctx.stroke();
+    sctx.fillStyle = "#6b7280"; sctx.font = "11px sans-serif"; sctx.textAlign = "center";
+    const stp = niceStep(span);
+    for (let X = Math.ceil(xmin / stp) * stp; X <= xmax + 1e-9; X += stp) {
+      sctx.beginPath(); sctx.moveTo(sx(X), H - 34); sctx.lineTo(sx(X), H - 26); sctx.stroke();
+      sctx.fillText(fmt(X, 0) + "m", sx(X), H - 12);
+    }
+    const bx = sx(x(t)), by = H - 48;
+    // 速度矢印
+    arrow(sctx, bx, by, bx + v(t) * 8, by, "#2563eb");
+    sctx.fillStyle = "#dc2626";
+    sctx.beginPath(); sctx.arc(bx, by, 11, 0, Math.PI * 2); sctx.fill();
+    sctx.fillStyle = "#374151"; sctx.textAlign = "left"; sctx.font = "12px sans-serif";
+    sctx.fillText(`t = ${fmt(t)} s`, 20, 20);
+
+    $("accel-formula").innerHTML =
+      `v = v₀ + at = <span class="lit">${fmt(v0)}</span> + <span class="lit">${fmt(a)}</span> × ${fmt(t)} = <b>${fmt(v(t))} m/s</b>` +
+      `<br>x = v₀t + ½at² = <span class="lit">${fmt(v0)}</span> × ${fmt(t)} + ½ × <span class="lit">${fmt(a)}</span> × ${fmt(t)}² = <b>${fmt(x(t))} m</b>` +
+      `  (v-tグラフの面積 = 変位)`;
+  };
+  modules["p-accel"] = mod;
+})();
+
+/* ---------- 2. 放物運動 ---------- */
+(() => {
+  const mod = { t: 0, playing: true };
+  const ctrl = $("proj-controls");
+  const v0s = makeSlider(ctrl, { label: "初速度 v₀", unit: "m/s", min: 5, max: 30, step: 0.5, value: 20, onchange: () => { mod.t = 0; } });
+  const ths = makeSlider(ctrl, { label: "投射角 θ", unit: "°", min: 10, max: 80, step: 1, value: 45, digits: 0, onchange: () => { mod.t = 0; } });
+  makeControls(ctrl, mod);
+
+  const gs = makeGraph($("proj-sim"), { xlabel: "x [m]", ylabel: "y [m]" });
+  const gy = makeGraph($("proj-yt"), { xlabel: "t [s]", ylabel: "y [m]" });
+
+  const par = () => {
+    const v0 = v0s.get(), th = ths.get() * Math.PI / 180;
+    const vx = v0 * Math.cos(th), vy0 = v0 * Math.sin(th);
+    const T = 2 * vy0 / G;
+    return { v0, th, vx, vy0, T, R: vx * T, hmax: vy0 * vy0 / (2 * G) };
+  };
+  mod.step = dt => { const { T } = par(); mod.t = (mod.t + dt) % T; };
+  mod.render = () => {
+    const { v0, vx, vy0, T, R, hmax } = par();
+    const t = Math.min(mod.t, T);
+    const X = tt => vx * tt;
+    const Y = tt => vy0 * tt - 0.5 * G * tt * tt;
+    const vy = vy0 - G * t;
+
+    gs.setRange(0, Math.max(R * 1.08, 10), 0, Math.max(hmax * 1.25, 5));
+    gs.clear();
+    // 軌道全体を点線で表示
+    gs.ctx.save();
+    gs.ctx.strokeStyle = "#9ca3af"; gs.ctx.setLineDash([5, 5]); gs.ctx.lineWidth = 1.5;
+    gs.ctx.beginPath();
+    for (let i = 0; i <= 100; i++) {
+      const tt = T * i / 100;
+      const px = gs.px(X(tt)), py = gs.py(Y(tt));
+      i === 0 ? gs.ctx.moveTo(px, py) : gs.ctx.lineTo(px, py);
+    }
+    gs.ctx.stroke();
+    gs.ctx.restore();
+    // 速度ベクトル
+    const bx = gs.px(X(t)), by = gs.py(Y(t));
+    const k = 3;
+    arrow(gs.ctx, bx, by, bx + vx * k, by, "#059669");
+    arrow(gs.ctx, bx, by, bx, by - vy * k, "#ea580c");
+    arrow(gs.ctx, bx, by, bx + vx * k, by - vy * k, "#dc2626");
+    gs.dot(X(t), Y(t), "#dc2626", 7);
+
+    gy.setRange(0, T, 0, Math.max(hmax * 1.25, 5));
+    gy.clear();
+    gy.plot(Y, 0, T, "#7c3aed");
+    gy.guide(t, Y(t), "#7c3aed");
+    gy.dot(t, Y(t), "#7c3aed");
+
+    $("proj-formula").innerHTML =
+      `vₓ = v₀cosθ = <span class="lit">${fmt(v0)}</span> × cos<span class="lit">${fmt(ths.get(), 0)}°</span> = <b>${fmt(vx)} m/s</b>(一定), ` +
+      `v_y = v₀sinθ − gt = ${fmt(vy0)} − 9.8 × ${fmt(t)} = <b>${fmt(vy)} m/s</b>` +
+      `<br>滞空時間 T = 2v₀sinθ/g = <b>${fmt(T)} s</b>, 最高点 h = <b>${fmt(hmax)} m</b>, 水平到達距離 R = <b>${fmt(R)} m</b>`;
+  };
+  modules["p-proj"] = mod;
+})();
+
+/* ---------- 3. 力学的エネルギー ---------- */
+(() => {
+  const mod = { t: 0, playing: true };
+  const ctrl = $("energy-controls");
+  const hs = makeSlider(ctrl, { label: "初めの高さ h", unit: "m", min: 5, max: 80, step: 1, value: 40, digits: 0, onchange: () => { mod.t = 0; } });
+  const ms = makeSlider(ctrl, { label: "質量 m", unit: "kg", min: 0.5, max: 5, step: 0.1, value: 1, onchange: () => { mod.t = 0; } });
+  makeControls(ctrl, mod);
+
+  const sim = $("energy-sim"), sctx = sim.getContext("2d");
+  const bar = $("energy-bar"), bctx = bar.getContext("2d");
+  const gg = makeGraph($("energy-graph"), { xlabel: "高さ y [m]", ylabel: "E [J]" });
+
+  mod.step = dt => {
+    const h = hs.get(), tf = Math.sqrt(2 * h / G);
+    mod.t = (mod.t + dt) % (tf * 1.25); // 着地後少し停止して繰り返し
+  };
+  mod.render = () => {
+    const h = hs.get(), m = ms.get();
+    const tf = Math.sqrt(2 * h / G);
+    const t = Math.min(mod.t, tf);
+    const y = h - 0.5 * G * t * t;
+    const v = G * t;
+    const U = m * G * y, K = 0.5 * m * v * v, E = m * G * h;
+
+    // 落下アニメーション
+    const W = sim.width, H = sim.height;
+    sctx.clearRect(0, 0, W, H);
+    const py = Y => 20 + (1 - Y / h) * (H - 60);
+    sctx.strokeStyle = "#9ca3af";
+    sctx.beginPath(); sctx.moveTo(20, H - 30); sctx.lineTo(W - 20, H - 30); sctx.stroke(); // 地面
+    sctx.fillStyle = "#e5e7eb";
+    sctx.fillRect(20, H - 30, W - 40, 8);
+    sctx.strokeStyle = "#d1d5db"; sctx.setLineDash([3, 4]);
+    sctx.beginPath(); sctx.moveTo(W / 2, py(h)); sctx.lineTo(W / 2, H - 30); sctx.stroke();
+    sctx.setLineDash([]);
+    sctx.fillStyle = "#dc2626";
+    sctx.beginPath(); sctx.arc(W / 2, py(Math.max(y, 0)), 12, 0, Math.PI * 2); sctx.fill();
+    sctx.fillStyle = "#374151"; sctx.font = "12px sans-serif"; sctx.textAlign = "left";
+    sctx.fillText(`y = ${fmt(Math.max(y, 0))} m`, 12, 20);
+    sctx.fillText(`v = ${fmt(v)} m/s`, 12, 38);
+
+    // 棒グラフ
+    const BW = bar.width, BH = bar.height;
+    bctx.clearRect(0, 0, BW, BH);
+    const bars = [
+      { name: "運動 K", val: K, color: "#059669" },
+      { name: "位置 U", val: U, color: "#ea580c" },
+      { name: "合計 E", val: E, color: "#2563eb" },
+    ];
+    const maxE = E * 1.15;
+    bars.forEach((b, i) => {
+      const x0 = 60 + i * (BW - 80) / 3, bw = (BW - 80) / 3 - 30;
+      const bh = b.val / maxE * (BH - 90);
+      bctx.fillStyle = b.color;
+      bctx.fillRect(x0, BH - 50 - bh, bw, bh);
+      bctx.fillStyle = "#374151"; bctx.font = "11px sans-serif"; bctx.textAlign = "center";
+      bctx.fillText(b.name, x0 + bw / 2, BH - 30);
+      bctx.fillText(fmt(b.val) + " J", x0 + bw / 2, BH - 56 - bh);
+    });
+
+    // E-y グラフ
+    gg.setRange(0, h, 0, E * 1.2);
+    gg.clear();
+    gg.plot(Y => m * G * Y, 0, h, "#ea580c");
+    gg.plot(Y => E - m * G * Y, 0, h, "#059669");
+    gg.plot(() => E, 0, h, "#2563eb", 2, [6, 4]);
+    gg.dot(Math.max(y, 0), U, "#ea580c");
+    gg.dot(Math.max(y, 0), K, "#059669");
+
+    $("energy-formula").innerHTML =
+      `U = mgy = <span class="lit">${fmt(m)}</span> × 9.8 × ${fmt(Math.max(y, 0))} = <b>${fmt(U)} J</b>,  ` +
+      `K = ½mv² = ½ × <span class="lit">${fmt(m)}</span> × ${fmt(v)}² = <b>${fmt(K)} J</b>` +
+      `<br>K + U = <b>${fmt(K + U)} J</b> = mgh(一定) → 地面での速さ v = √(2gh) = <b>${fmt(Math.sqrt(2 * G * hs.get()))} m/s</b>`;
+  };
+  modules["p-energy"] = mod;
+})();
+
+/* ---------- 4. 単振動 ---------- */
+(() => {
+  const mod = { t: 0, playing: true };
+  const ctrl = $("shm-controls");
+  const ms = makeSlider(ctrl, { label: "質量 m", unit: "kg", min: 0.1, max: 2, step: 0.1, value: 0.5, onchange: () => { mod.t = 0; } });
+  const ks = makeSlider(ctrl, { label: "ばね定数 k", unit: "N/m", min: 1, max: 50, step: 1, value: 10, digits: 0, onchange: () => { mod.t = 0; } });
+  const As = makeSlider(ctrl, { label: "振幅 A", unit: "m", min: 0.05, max: 0.5, step: 0.05, value: 0.2, digits: 2 });
+  makeControls(ctrl, mod);
+
+  const sim = $("shm-sim"), sctx = sim.getContext("2d");
+  const gx = makeGraph($("shm-xt"), { xlabel: "t [s]", ylabel: "x [m]" });
+
+  const par = () => {
+    const m = ms.get(), k = ks.get(), A = As.get();
+    const w = Math.sqrt(k / m);
+    return { m, k, A, w, T: 2 * Math.PI / w };
+  };
+  mod.step = dt => { const { T } = par(); mod.t = (mod.t + dt) % (3 * T); };
+  mod.render = () => {
+    const { m, k, A, w, T } = par();
+    const t = mod.t;
+    const x = tt => A * Math.sin(w * tt);
+    const v = A * w * Math.cos(w * t);
+
+    // ばねアニメーション
+    const W = sim.width, H = sim.height, cy = H / 2;
+    sctx.clearRect(0, 0, W, H);
+    const cx = W / 2;                    // つり合いの位置
+    const scale = (W * 0.35) / 0.55;     // m→px
+    const px = cx + x(t) * scale;
+    // 壁と床
+    sctx.fillStyle = "#e5e7eb";
+    sctx.fillRect(30, cy - 45, 10, 90);
+    sctx.fillRect(30, cy + 28, W - 60, 6);
+    // つり合い位置の目印
+    sctx.strokeStyle = "#d1d5db"; sctx.setLineDash([4, 4]);
+    sctx.beginPath(); sctx.moveTo(cx, cy - 45); sctx.lineTo(cx, cy + 34); sctx.stroke();
+    sctx.setLineDash([]);
+    sctx.fillStyle = "#6b7280"; sctx.font = "11px sans-serif"; sctx.textAlign = "center";
+    sctx.fillText("x = 0(つり合い)", cx, cy - 50);
+    // ばね
+    sctx.strokeStyle = "#6b7280"; sctx.lineWidth = 2;
+    drawSpring(sctx, 40, cy, px - 22, 12, 10);
+    // 物体
+    sctx.fillStyle = "#2563eb";
+    sctx.fillRect(px - 22, cy - 22, 44, 44);
+    // 復元力の矢印 F = -kx
+    arrow(sctx, px, cy - 32, px - k * x(t) * 12, cy - 32, "#dc2626");
+    sctx.fillStyle = "#dc2626"; sctx.textAlign = "left";
+    sctx.fillText("復元力 F = −kx", 46, 18);
+
+    // x-t グラフ
+    gx.setRange(0, 3 * T, -A * 1.3, A * 1.3);
+    gx.clear();
+    gx.plot(x, 0, 3 * T, "#2563eb");
+    gx.guide(t, x(t), "#2563eb");
+    gx.dot(t, x(t), "#2563eb");
+
+    $("shm-formula").innerHTML =
+      `ω = √(k/m) = √(<span class="lit">${fmt(k, 0)}</span>/<span class="lit">${fmt(m)}</span>) = <b>${fmt(w, 2)} rad/s</b>,  ` +
+      `周期 T = 2π√(m/k) = <b>${fmt(T, 2)} s</b>` +
+      `<br>x = A sin ωt = <span class="lit">${fmt(A, 2)}</span> × sin(${fmt(w, 2)} × ${fmt(t)}) = <b>${fmt(x(t), 3)} m</b>,  ` +
+      `v = Aω cos ωt = <b>${fmt(v, 2)} m/s</b>`;
+  };
+  modules["p-shm"] = mod;
+})();
+
+/* ---------- 5. 波 ---------- */
+(() => {
+  const mod = { t: 0, playing: true, twin: 6 };
+  const ctrl = $("wave-controls");
+  const As = makeSlider(ctrl, { label: "振幅 A", unit: "m", min: 0.5, max: 2, step: 0.1, value: 1 });
+  const ls = makeSlider(ctrl, { label: "波長 λ", unit: "m", min: 1, max: 8, step: 0.5, value: 4 });
+  const fs = makeSlider(ctrl, { label: "振動数 f", unit: "Hz", min: 0.2, max: 2, step: 0.1, value: 0.5 });
+  makeControls(ctrl, mod);
+
+  const gyx = makeGraph($("wave-yx"), { xlabel: "x [m]", ylabel: "y [m]" });
+  const gyt = makeGraph($("wave-yt"), { xlabel: "t [s]", ylabel: "y [m]" });
+  const X0 = 3; // 注目する媒質の位置
+
+  mod.step = dt => { mod.t = (mod.t + dt) % mod.twin; };
+  mod.render = () => {
+    const A = As.get(), L = ls.get(), f = fs.get();
+    const v = f * L, T = 1 / f, t = mod.t;
+    const y = (xx, tt) => A * Math.sin(2 * Math.PI * (tt / T - xx / L));
+
+    gyx.setRange(0, 12, -2.4, 2.4);
+    gyx.clear();
+    gyx.plot(xx => y(xx, t), 0, 12, "#2563eb");
+    // 進行方向の矢印
+    arrow(gyx.ctx, gyx.px(9.6), gyx.py(2.0), gyx.px(11.2), gyx.py(2.0), "#059669");
+    gyx.ctx.save();
+    gyx.ctx.fillStyle = "#059669"; gyx.ctx.font = "12px sans-serif"; gyx.ctx.textAlign = "right";
+    gyx.ctx.fillText(`進む速さ v = ${fmt(v, 2)} m/s`, gyx.px(11.2), gyx.py(2.0) - 10);
+    gyx.ctx.restore();
+    gyx.guide(X0, y(X0, t), "#dc2626");
+    gyx.dot(X0, y(X0, t), "#dc2626", 7);
+
+    gyt.setRange(0, mod.twin, -2.4, 2.4);
+    gyt.clear();
+    gyt.plot(tt => y(X0, tt), 0, mod.twin, "#dc2626");
+    gyt.guide(t, y(X0, t), "#dc2626");
+    gyt.dot(t, y(X0, t), "#dc2626");
+
+    $("wave-formula").innerHTML =
+      `v = fλ = <span class="lit">${fmt(f)}</span> × <span class="lit">${fmt(L)}</span> = <b>${fmt(v, 2)} m/s</b>,  ` +
+      `周期 T = 1/f = <b>${fmt(T, 2)} s</b>` +
+      `<br>y = A sin 2π(t/T − x/λ):赤い点(x = ${X0} m)の変位 y = <b>${fmt(y(X0, t), 2)} m</b>`;
+  };
+  modules["p-wave"] = mod;
+})();
+
+/* ---------- 6. オームの法則 ---------- */
+(() => {
+  const mod = { t: 0, playing: true, phase: 0 };
+  const ctrl = $("ohm-controls");
+  const Vs = makeSlider(ctrl, { label: "電圧 V", unit: "V", min: 0, max: 12, step: 0.5, value: 6 });
+  const Rs = makeSlider(ctrl, { label: "抵抗 R", unit: "Ω", min: 1, max: 20, step: 0.5, value: 5 });
+  makeControls(ctrl, mod);
+
+  const sim = $("ohm-sim"), sctx = sim.getContext("2d");
+  const gg = makeGraph($("ohm-graph"), { xlabel: "V [V]", ylabel: "I [A]" });
+
+  mod.step = dt => {
+    const I = Vs.get() / Rs.get();
+    mod.phase = (mod.phase + dt * I * 0.12) % 1;
+  };
+  mod.render = () => {
+    const V = Vs.get(), R = Rs.get();
+    const I = V / R, P = V * I;
+
+    // 回路図
+    const W = sim.width, H = sim.height;
+    sctx.clearRect(0, 0, W, H);
+    const L = 80, Rt = 60, Rr = W - 80, Rb = H - 60;
+    sctx.strokeStyle = "#374151"; sctx.lineWidth = 2.5;
+    sctx.strokeRect(L, Rt, Rr - L, Rb - Rt);
+    // 電池(左辺中央):長い線=+極
+    const bcy = (Rt + Rb) / 2;
+    sctx.fillStyle = "#fff";
+    sctx.fillRect(L - 4, bcy - 26, 8, 52);
+    sctx.beginPath();
+    sctx.moveTo(L - 16, bcy - 8); sctx.lineTo(L + 16, bcy - 8); // 長い線(+)
+    sctx.moveTo(L - 8, bcy + 8); sctx.lineTo(L + 8, bcy + 8);   // 短い線(−)
+    sctx.stroke();
+    sctx.fillStyle = "#374151"; sctx.font = "12px sans-serif"; sctx.textAlign = "right";
+    sctx.fillText("+", L - 20, bcy - 4);
+    sctx.fillText("−", L - 20, bcy + 14);
+    sctx.textAlign = "center";
+    sctx.fillText(`電池 ${fmt(V)} V`, L, Rb + 24);
+    // 抵抗(上辺中央)
+    const rcx = (L + Rr) / 2;
+    sctx.fillStyle = "#fff";
+    sctx.fillRect(rcx - 46, Rt - 12, 92, 24);
+    sctx.strokeStyle = "#dc2626";
+    drawSpring(sctx, rcx - 44, Rt, rcx + 44, 6, 9);
+    sctx.fillStyle = "#dc2626";
+    sctx.fillText(`抵抗 ${fmt(R)} Ω`, rcx, Rt - 20);
+    // 電流の点(周回)
+    const per = 2 * (Rr - L) + 2 * (Rb - Rt);
+    const pos = s => {
+      s = ((s % 1) + 1) % 1;
+      let d = s * per;
+      if (d < Rb - bcy) return [L, bcy + d];
+      d -= Rb - bcy;
+      if (d < Rr - L) return [L + d, Rb];
+      d -= Rr - L;
+      if (d < Rb - Rt) return [Rr, Rb - d];
+      d -= Rb - Rt;
+      if (d < Rr - L) return [Rr - d, Rt];
+      d -= Rr - L;
+      return [L, Rt + d];
+    };
+    sctx.fillStyle = "#f59e0b";
+    const N = 14;
+    for (let i = 0; i < N; i++) {
+      const [px, py] = pos(-(mod.phase + i / N)); // 時計回り=+極から上辺へ
+      sctx.beginPath(); sctx.arc(px, py, 5, 0, Math.PI * 2); sctx.fill();
+    }
+    sctx.fillStyle = "#374151"; sctx.textAlign = "left";
+    sctx.fillText(`電流 I = ${fmt(I, 2)} A`, L + 14, bcy + 4);
+
+    // I-V グラフ
+    const ymax = Math.max(12 / R * 1.15, I * 1.3, 0.5);
+    gg.setRange(0, 12, 0, ymax);
+    gg.clear();
+    gg.plot(vv => vv / R, 0, 12, "#2563eb");
+    gg.guide(V, I, "#dc2626");
+    gg.dot(V, I, "#dc2626");
+
+    $("ohm-formula").innerHTML =
+      `I = V/R = <span class="lit">${fmt(V)}</span> / <span class="lit">${fmt(R)}</span> = <b>${fmt(I, 2)} A</b>` +
+      `<br>消費電力 P = VI = <span class="lit">${fmt(V)}</span> × ${fmt(I, 2)} = <b>${fmt(P, 1)} W</b>(1秒あたりのジュール熱)`;
+  };
+  modules["p-ohm"] = mod;
+})();
+
+/* ---------- タブとメインループ ---------- */
+const TABS = [
+  ["p-home", "はじめに"],
+  ["p-accel", "等加速度直線運動"],
+  ["p-proj", "放物運動"],
+  ["p-energy", "力学的エネルギー"],
+  ["p-shm", "単振動"],
+  ["p-wave", "波"],
+  ["p-ohm", "オームの法則"],
+];
+const nav = $("tabs");
+TABS.forEach(([id, name]) => {
+  const b = document.createElement("button");
+  b.textContent = name;
+  b.addEventListener("click", () => activate(id));
+  b.dataset.target = id;
+  nav.appendChild(b);
+});
+function activate(id) {
+  activeId = id;
+  document.querySelectorAll("section.panel").forEach(s => s.classList.toggle("active", s.id === id));
+  nav.querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.target === id));
+  const mod = modules[id];
+  if (mod) mod.render();
+}
+activate("p-home");
+
+let last = null;
+function loop(ts) {
+  if (last === null) last = ts;
+  const dt = Math.min((ts - last) / 1000, 0.05);
+  last = ts;
+  const mod = modules[activeId];
+  if (mod) {
+    if (mod.playing) mod.step(dt);
+    mod.render();
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
