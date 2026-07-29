@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOBILE SUIT OS - STARTUP</title>
+<style>
+  :root {
+    --bg: #020508;
+    --panel: #04121c;
+    --cyan: #6fe3ff;
+    --cyan-dim: #2a7f99;
+    --green: #4dff88;
+    --amber: #ffc44d;
+    --red: #ff5a5a;
+    --white: #e8f6ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--cyan);
+    font-family: "Share Tech Mono", "Courier New", ui-monospace, Menlo, Consolas, monospace;
+    overflow: hidden;
+    cursor: default;
+    user-select: none;
+  }
+
+  /* ===== screen frame ===== */
+  #screen {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background:
+      radial-gradient(ellipse at 50% 45%, rgba(30, 90, 130, 0.18), transparent 65%),
+      var(--bg);
+    overflow: hidden;
+  }
+  /* grid backdrop */
+  #screen::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(111, 227, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(111, 227, 255, 0.05) 1px, transparent 1px);
+    background-size: 42px 42px;
+    pointer-events: none;
+  }
+  /* CRT scanlines + vignette */
+  #screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(0deg,
+        rgba(0, 0, 0, 0.22) 0px, rgba(0, 0, 0, 0.22) 1px,
+        transparent 1px, transparent 3px),
+      radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+    pointer-events: none;
+    z-index: 50;
+  }
+  .flicker { animation: flicker 4s infinite; }
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    97.5% { opacity: 1; }
+    98% { opacity: 0.82; }
+    98.5% { opacity: 1; }
+    99% { opacity: 0.9; }
+  }
+
+  /* corner brackets */
+  .corner { position: absolute; width: 46px; height: 46px; z-index: 40; opacity: 0.8; }
+  .corner::before, .corner::after { content: ""; position: absolute; background: var(--cyan); }
+  .corner::before { width: 100%; height: 2px; }
+  .corner::after { width: 2px; height: 100%; }
+  .corner.tl { top: 14px; left: 14px; }
+  .corner.tr { top: 14px; right: 14px; transform: scaleX(-1); }
+  .corner.bl { bottom: 14px; left: 14px; transform: scaleY(-1); }
+  .corner.br { bottom: 14px; right: 14px; transform: scale(-1); }
+
+  .hud-label {
+    position: absolute;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--cyan-dim);
+    z-index: 40;
+  }
+  #hud-tl { top: 22px; left: 74px; }
+  #hud-tr { top: 22px; right: 74px; text-align: right; }
+  #hud-bl { bottom: 22px; left: 74px; }
+  #hud-br { bottom: 22px; right: 74px; text-align: right; }
+  #hud-tr .blink { color: var(--amber); }
+  .blink { animation: blink 1s steps(2, start) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .layer {
+    position: absolute;
+    inset: 0;
+    display: none;
+    z-index: 10;
+  }
+  .layer.active { display: block; }
+
+  /* ===== phase 0: standby ===== */
+  #standby {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    text-align: center;
+  }
+  #standby.active { display: flex; }
+  #standby .ms-id {
+    font-size: clamp(14px, 2.2vw, 20px);
+    letter-spacing: 0.5em;
+    color: var(--cyan-dim);
+  }
+  #standby .title {
+    font-size: clamp(22px, 4.5vw, 44px);
+    letter-spacing: 0.35em;
+    color: var(--white);
+    text-shadow: 0 0 18px rgba(111, 227, 255, 0.6);
+  }
+  #start-btn {
+    margin-top: 12px;
+    padding: 14px 46px;
+    font: inherit;
+    font-size: clamp(13px, 1.8vw, 17px);
+    letter-spacing: 0.4em;
+    text-indent: 0.4em;
+    color: var(--amber);
+    background: rgba(255, 196, 77, 0.06);
+    border: 1px solid var(--amber);
+    cursor: pointer;
+    animation: blink 1.2s steps(2, start) infinite;
+  }
+  #start-btn:hover { background: rgba(255, 196, 77, 0.18); animation: none; }
+
+  /* ===== phase 1: boot scroll ===== */
+  #boot {
+    padding: 54px 80px;
+    font-size: clamp(10px, 1.35vw, 14px);
+    line-height: 1.55;
+    overflow: hidden;
+  }
+  #boot .col-wrap {
+    display: flex;
+    gap: 48px;
+    height: 100%;
+  }
+  #boot-log { flex: 1.4; overflow: hidden; white-space: pre-wrap; }
+  #boot-hex {
+    flex: 1;
+    overflow: hidden;
+    color: var(--cyan-dim);
+    opacity: 0.7;
+    white-space: pre;
+    display: none;
+  }
+  @media (min-width: 720px) { #boot-hex { display: block; } }
+  #boot-log .ok { color: var(--green); }
+  #boot-log .warn { color: var(--amber); }
+  #boot-log .err { color: var(--red); }
+  #boot-log .sys { color: var(--white); }
+
+  /* progress bar at bottom of boot phase */
+  #boot-progress {
+    position: absolute;
+    left: 80px;
+    right: 80px;
+    bottom: 58px;
+    border: 1px solid var(--cyan-dim);
+    height: 14px;
+    padding: 2px;
+  }
+  #boot-progress .fill {
+    height: 100%;
+    width: 0%;
+    background: repeating-linear-gradient(90deg,
+      var(--cyan) 0 8px, transparent 8px 11px);
+  }
+
+  /* ===== phase 2: acronym ===== */
+  #acronym {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    padding-left: clamp(24px, 14vw, 260px);
+    gap: clamp(6px, 1.6vh, 16px);
+  }
+  #acronym.active { display: flex; }
+  .a-line {
+    font-size: clamp(20px, 4.6vh, 42px);
+    letter-spacing: 0.14em;
+    color: var(--white);
+    opacity: 0;
+    white-space: nowrap;
+  }
+  .a-line.shown { opacity: 1; }
+  .a-line .initial {
+    display: inline-block;
+    font-size: 1.45em;
+    font-weight: bold;
+    color: var(--amber);
+    text-shadow: 0 0 14px rgba(255, 196, 77, 0.75);
+    margin-right: 2px;
+  }
+  .a-line .rest { color: var(--cyan); }
+  .a-line .caret {
+    display: inline-block;
+    width: 0.55em;
+    height: 1.05em;
+    background: var(--cyan);
+    vertical-align: -0.12em;
+    margin-left: 4px;
+    animation: blink 0.6s steps(2, start) infinite;
+  }
+  #acronym .tagline {
+    margin-top: clamp(10px, 3vh, 26px);
+    font-size: clamp(11px, 2vh, 16px);
+    letter-spacing: 0.5em;
+    color: var(--cyan-dim);
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  #acronym .tagline.shown { opacity: 1; }
+
+  /* ===== phase 3: logo ===== */
+  #logo {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(14px, 3vh, 30px);
+  }
+  #logo.active { display: flex; }
+  #logo-word {
+    display: flex;
+    gap: clamp(6px, 1.4vw, 18px);
+  }
+  #logo-word span {
+    font-size: clamp(52px, 13vw, 150px);
+    font-weight: bold;
+    color: var(--white);
+    text-shadow:
+      0 0 8px rgba(111, 227, 255, 0.9),
+      0 0 28px rgba(111, 227, 255, 0.55),
+      0 0 64px rgba(111, 227, 255, 0.35);
+    opacity: 0;
+    transform: scale(2.4);
+  }
+  #logo-word span.land {
+    opacity: 1;
+    transform: scale(1);
+    animation: land 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  }
+  @keyframes land {
+    from { opacity: 0; transform: scale(2.4); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  #logo-word.flash span {
+    animation: logoflash 0.9s steps(1) 1;
+  }
+  @keyframes logoflash {
+    0% { color: var(--amber); }
+    18% { color: var(--white); }
+    36% { color: var(--amber); }
+    54% { color: var(--white); }
+  }
+  #logo .sub {
+    font-size: clamp(11px, 1.8vw, 17px);
+    letter-spacing: 0.55em;
+    text-indent: 0.55em;
+    color: var(--cyan-dim);
+    opacity: 0;
+    transition: opacity 0.6s;
+  }
+  #logo .sub.shown { opacity: 1; }
+  #all-green {
+    margin-top: clamp(8px, 2vh, 20px);
+    padding: 10px 34px;
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-size: clamp(14px, 2.4vw, 24px);
+    letter-spacing: 0.45em;
+    text-indent: 0.45em;
+    text-shadow: 0 0 14px rgba(77, 255, 136, 0.7);
+    box-shadow: 0 0 22px rgba(77, 255, 136, 0.25), inset 0 0 18px rgba(77, 255, 136, 0.12);
+    opacity: 0;
+  }
+  #all-green.shown { opacity: 1; animation: greenpulse 1.6s ease-in-out infinite; }
+  @keyframes greenpulse {
+    0%, 100% { box-shadow: 0 0 22px rgba(77, 255, 136, 0.25), inset 0 0 18px rgba(77, 255, 136, 0.12); }
+    50% { box-shadow: 0 0 40px rgba(77, 255, 136, 0.5), inset 0 0 26px rgba(77, 255, 136, 0.22); }
+  }
+  #restart-hint {
+    position: absolute;
+    bottom: 64px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    color: var(--cyan-dim);
+    opacity: 0;
+    transition: opacity 0.8s;
+    z-index: 40;
+  }
+  #restart-hint.shown { opacity: 1; }
+
+  /* white flash used at phase transitions */
+  #flash {
+    position: absolute;
+    inset: 0;
+    background: var(--white);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 60;
+  }
+  #flash.go { animation: whiteflash 0.35s ease-out 1; }
+  @keyframes whiteflash {
+    0% { opacity: 0.85; }
+    100% { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<div id="screen" class="flicker">
+  <div class="corner tl"></div><div class="corner tr"></div>
+  <div class="corner bl"></div><div class="corner br"></div>
+  <div class="hud-label" id="hud-tl">G.A.T. X-105 // O.M.N.I. ENFORCER</div>
+  <div class="hud-label" id="hud-tr"><span class="blink">&#9679;</span> REC &nbsp; CAM-01</div>
+  <div class="hud-label" id="hud-bl">HELIOPOLIS FACTORY DISTRICT</div>
+  <div class="hud-label" id="hud-br">C.E.71</div>
+  <div id="flash"></div>
+
+  <!-- phase 0 -->
+  <div class="layer active" id="standby">
+    <div class="ms-id">GAT-X105 STRIKE</div>
+    <div class="title">MOBILE SUIT<br>OPERATION SYSTEM</div>
+    <button id="start-btn">SYSTEM START</button>
+  </div>
+
+  <!-- phase 1 -->
+  <div class="layer" id="boot">
+    <div class="col-wrap">
+      <div id="boot-log"></div>
+      <div id="boot-hex"></div>
+    </div>
+    <div id="boot-progress"><div class="fill"></div></div>
+  </div>
+
+  <!-- phase 2 -->
+  <div class="layer" id="acronym">
+    <div class="a-line" data-initial="G" data-rest="eneral"></div>
+    <div class="a-line" data-initial="U" data-rest="nilateral"></div>
+    <div class="a-line" data-initial="N" data-rest="euro-link"></div>
+    <div class="a-line" data-initial="D" data-rest="ispersive"></div>
+    <div class="a-line" data-initial="A" data-rest="utonomic"></div>
+    <div class="a-line" data-initial="M" data-rest="aneuver"></div>
+    <div class="tagline">SYNTHESIS SYSTEM &mdash; REWRITING O.S. ...</div>
+  </div>
+
+  <!-- phase 3 -->
+  <div class="layer" id="logo">
+    <div id="logo-word">
+      <span>G</span><span>U</span><span>N</span><span>D</span><span>A</span><span>M</span>
+    </div>
+    <div class="sub">GENERAL UNILATERAL NEURO-LINK DISPERSIVE AUTONOMIC MANEUVER</div>
+    <div id="all-green">SYSTEM ALL GREEN</div>
+  </div>
+
+  <div id="restart-hint">PRESS ANY KEY / TAP TO RESTART</div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (sel) => document.querySelector(sel);
+  const layers = {
+    standby: $("#standby"),
+    boot: $("#boot"),
+    acronym: $("#acronym"),
+    logo: $("#logo"),
+  };
+  const bootLog = $("#boot-log");
+  const bootHex = $("#boot-hex");
+  const progressFill = $("#boot-progress .fill");
+  const flash = $("#flash");
+  const restartHint = $("#restart-hint");
+
+  let running = false;
+  let timers = [];
+  const later = (fn, ms) => { timers.push(setTimeout(fn, ms)); };
+  const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
+
+  function showLayer(name) {
+    Object.values(layers).forEach((el) => el.classList.remove("active"));
+    layers[name].classList.add("active");
+  }
+
+  function whiteFlash() {
+    flash.classList.remove("go");
+    void flash.offsetWidth;
+    flash.classList.add("go");
+  }
+
+  /* ---------- sound (WebAudio beeps) ---------- */
+  let actx = null;
+  function audio() {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    return actx;
+  }
+  function beep(freq, dur = 0.06, type = "square", gain = 0.045, when = 0) {
+    try {
+      const ctx = audio();
+      const t = ctx.currentTime + when;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(gain, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + dur + 0.02);
+    } catch (e) { /* audio unavailable */ }
+  }
+  function chordAllGreen() {
+    beep(523, 0.35, "triangle", 0.06, 0);
+    beep(659, 0.35, "triangle", 0.06, 0.02);
+    beep(784, 0.55, "triangle", 0.07, 0.04);
+  }
+
+  /* ---------- phase 1: boot scroll ---------- */
+  const BOOT_LINES = [
+    ["sys", "> MOBILE SUIT OPERATION SYSTEM  Ver 1.62  BOOT SEQUENCE START"],
+    ["", "  COPYRIGHT (C) MORGENROETE INC. / EARTH ALLIANCE"],
+    ["", ""],
+    ["", "  CPU CORE 0-7 ............................ <span class='ok'>ONLINE</span>"],
+    ["", "  MAIN MEMORY 65536TB ..................... <span class='ok'>CHECK OK</span>"],
+    ["", "  ULTRACOMPACT ENERGY BATTERY ............. <span class='ok'>ONLINE</span>"],
+    ["", "  POWER PLANT OUTPUT ...................... <span class='ok'>NOMINAL</span>"],
+    ["", "  APOGEE MOTOR IGNITION TEST .............. <span class='ok'>PASS</span>"],
+    ["", "  ACTUATOR / SERVO CALIBRATION ............ <span class='ok'>PASS</span>"],
+    ["", "  BALANCER ADJUSTMENT ..................... <span class='warn'>RECALIBRATING...</span>"],
+    ["", "  BALANCER ADJUSTMENT ..................... <span class='ok'>COMPLETE</span>"],
+    ["", "  PHASE SHIFT ARMOR ....................... <span class='ok'>STANDBY</span>"],
+    ["", "  75mm CIWS \"IGELSTELLUNG\" ................ <span class='ok'>LINKED</span>"],
+    ["", "  57mm BEAM RIFLE ......................... <span class='ok'>LINKED</span>"],
+    ["", "  ANTI-BEAM SHIELD ........................ <span class='ok'>LINKED</span>"],
+    ["", "  SENSOR ARRAY / FCS ...................... <span class='ok'>ONLINE</span>"],
+    ["", "  COCKPIT LIFE SUPPORT .................... <span class='ok'>ONLINE</span>"],
+    ["", ""],
+    ["err", "  !! PILOT REGISTRATION NOT FOUND"],
+    ["err", "  !! O.S. PARAMETER MISMATCH - CONTROL RESPONSE 12.06%"],
+    ["warn", "  >> MANUAL O.S. REWRITE REQUESTED ..."],
+    ["sys", "  >> RECOMPILING MOTION CONTROL ROUTINES ......"],
+    ["sys", "  >> NEURAL LINKAGE PARAMETERS OPTIMIZED"],
+    ["sys", "  >> CALIBRATION COMPLETE - CONTROL RESPONSE 98.55%"],
+    ["", ""],
+    ["ok", "  ALL DEVICE CHECK ........................ <span class='ok'>COMPLETE</span>"],
+    ["sys", "> LOADING SYNTHESIS SYSTEM ..."],
+  ];
+
+  function hexNoiseLine() {
+    const addr = (Math.random() * 0xffffff | 0).toString(16).padStart(8, "0").toUpperCase();
+    let bytes = "";
+    for (let i = 0; i < 8; i++) {
+      bytes += (Math.random() * 0xffff | 0).toString(16).padStart(4, "0").toUpperCase() + " ";
+    }
+    return "0x" + addr + "  " + bytes;
+  }
+
+  function runBoot(done) {
+    bootLog.innerHTML = "";
+    bootHex.textContent = "";
+    progressFill.style.width = "0%";
+    showLayer("boot");
+
+    let i = 0;
+    const total = BOOT_LINES.length;
+    const step = () => {
+      if (!running) return;
+      if (i >= total) { later(done, 650); return; }
+      const [cls, html] = BOOT_LINES[i];
+      const div = document.createElement("div");
+      if (cls) div.className = cls;
+      div.innerHTML = html || "&nbsp;";
+      bootLog.appendChild(div);
+      while (bootLog.children.length > 26) bootLog.removeChild(bootLog.firstChild);
+      progressFill.style.width = ((i + 1) / total * 100).toFixed(1) + "%";
+      if (html) beep(cls === "err" ? 220 : 1180 + Math.random() * 300, 0.025, "square", 0.02);
+      i++;
+      const slow = cls === "err" || cls === "warn" || (html && html.indexOf("REWRITE") >= 0);
+      later(step, slow ? 340 : 90 + Math.random() * 70);
+    };
+    step();
+
+    // hex dump side column churns fast in parallel
+    const hexStep = () => {
+      if (!running || i >= total) return;
+      bootHex.textContent += hexNoiseLine() + "\n";
+      const lines = bootHex.textContent.split("\n");
+      if (lines.length > 30) bootHex.textContent = lines.slice(-30).join("\n");
+      later(hexStep, 45);
+    };
+    hexStep();
+  }
+
+  /* ---------- phase 2: acronym typewriter ---------- */
+  function runAcronym(done) {
+    whiteFlash();
+    showLayer("acronym");
+    const lines = Array.from(document.querySelectorAll(".a-line"));
+    const tagline = $("#acronym .tagline");
+    lines.forEach((l) => { l.classList.remove("shown"); l.innerHTML = ""; });
+    tagline.classList.remove("shown");
+
+    let li = 0;
+    const typeLine = () => {
+      if (!running) return;
+      if (li >= lines.length) {
+        tagline.classList.add("shown");
+        beep(880, 0.12, "sine", 0.05);
+        later(done, 1400);
+        return;
+      }
+      const line = lines[li];
+      const initial = line.dataset.initial;
+      const rest = line.dataset.rest;
+      line.classList.add("shown");
+      line.innerHTML = "<span class='initial'>" + initial + "</span><span class='rest'></span><span class='caret'></span>";
+      beep(660, 0.08, "square", 0.05);
+      const restEl = line.querySelector(".rest");
+      let ci = 0;
+      const typeChar = () => {
+        if (!running) return;
+        if (ci >= rest.length) {
+          line.querySelector(".caret").remove();
+          li++;
+          later(typeLine, 160);
+          return;
+        }
+        restEl.textContent += rest[ci];
+        beep(1400 + Math.random() * 200, 0.02, "square", 0.018);
+        ci++;
+        later(typeChar, 38);
+      };
+      later(typeChar, 120);
+    };
+    typeLine();
+  }
+
+  /* ---------- phase 3: logo ---------- */
+  function runLogo() {
+    whiteFlash();
+    showLayer("logo");
+    const word = $("#logo-word");
+    const letters = Array.from(word.children);
+    const sub = $("#logo .sub");
+    const allGreen = $("#all-green");
+    word.classList.remove("flash");
+    sub.classList.remove("shown");
+    allGreen.classList.remove("shown");
+    restartHint.classList.remove("shown");
+    letters.forEach((s) => s.classList.remove("land"));
+
+    letters.forEach((s, idx) => {
+      later(() => {
+        if (!running) return;
+        s.classList.add("land");
+        beep(320 + idx * 60, 0.09, "sawtooth", 0.05);
+      }, 240 * idx + 200);
+    });
+    later(() => {
+      if (!running) return;
+      word.classList.add("flash");
+      sub.classList.add("shown");
+      beep(988, 0.15, "triangle", 0.06);
+    }, 240 * letters.length + 500);
+    later(() => {
+      if (!running) return;
+      allGreen.classList.add("shown");
+      chordAllGreen();
+      restartHint.classList.add("shown");
+      running = false; // sequence complete; allow restart
+    }, 240 * letters.length + 1400);
+  }
+
+  /* ---------- sequence control ---------- */
+  function startSequence() {
+    if (running) return;
+    running = true;
+    clearTimers();
+    restartHint.classList.remove("shown");
+    if (actx && actx.state === "suspended") actx.resume();
+    beep(440, 0.1, "square", 0.05);
+    runBoot(() => runAcronym(() => runLogo()));
+  }
+
+  $("#start-btn").addEventListener("click", startSequence);
+
+  function restartHandler(e) {
+    // only restart from the completed logo screen
+    if (running || !layers.logo.classList.contains("active")) return;
+    if (e.target && e.target.id === "start-btn") return;
+    startSequence();
+  }
+  window.addEventListener("keydown", restartHandler);
+  window.addEventListener("pointerdown", restartHandler);
+})();
+</script>
+</body>
+</html>
