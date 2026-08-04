@@ -140,6 +140,21 @@
   .quiz-choices button.correct { background: #d1fae5; border-color: #059669; font-weight: bold; }
   .quiz-choices button.wrong { background: #fee2e2; border-color: #dc2626; }
   .quiz-fb { margin-top: 10px; font-size: 14px; line-height: 1.8; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+  .story-nav button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 16px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .story-nav button.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: bold; }
+  .story-title { margin: 0 0 10px; font-size: 17px; color: #1e3a8a; }
+  .story-text { font-size: 14px; line-height: 2.0; }
+  .story-text p { margin: 0 0 12px; }
+  .story-text table.map { margin: 8px 0; }
+  .story-pn { margin-top: 16px; }
   table.map { border-collapse: collapse; font-size: 13px; width: 100%; }
   table.map th, table.map td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; }
   table.map th { background: #eef2ff; }
@@ -185,6 +200,8 @@
         <tr><td>オームの法則</td><td>物理基礎</td><td>電気</td><td>V = RI,  P = VI</td></tr>
         <tr><td>電磁誘導</td><td>物理</td><td>電磁誘導</td><td>V = vBl,  V = −ΔΦ/Δt</td></tr>
         <tr><td>確認クイズ</td><td>共通</td><td>全単元</td><td>数値がランダムに変わる計算・知識問題</td></tr>
+        <tr><td>超ひも理論への道</td><td>発展・読み物</td><td>高校範囲外(最先端)</td><td>8章のストーリー+シミュレーションで基礎から案内</td></tr>
+        <tr><td>繰り込みへの道</td><td>発展・読み物</td><td>高校範囲外(最先端)</td><td>8章のストーリー+シミュレーションで基礎から案内</td></tr>
       </table>
       <p class="desc">グラフの読み方のポイント:<b>v-tグラフの傾き=加速度、面積=変位</b>。波では<b>y-xグラフ(ある時刻の波の形)とy-tグラフ(ある場所の振動)</b>の区別が最重要です。</p>
     </div>
@@ -453,6 +470,28 @@
     </div>
   </section>
 
+  <!-- ===== 14. 超ひも理論への道 ===== -->
+  <section class="panel" id="p-string">
+    <div class="card">
+      <h2>超ひも理論への道<span class="unit-tag">発展・読み物</span></h2>
+      <p class="desc">「万物は何からできているのか?」— 高校物理の知識だけを頼りに、8章のストーリーで最先端の超ひも理論の入り口まで歩きます。
+        各章にはさわって動かせるシミュレーションが付いています。急がずに、1章ずつどうぞ。</p>
+    </div>
+    <div class="card"><div class="story-nav" id="string-nav"></div></div>
+    <div class="card" id="string-body"></div>
+  </section>
+
+  <!-- ===== 15. 繰り込みへの道 ===== -->
+  <section class="panel" id="p-renorm">
+    <div class="card">
+      <h2>繰り込みへの道<span class="unit-tag">発展・読み物</span></h2>
+      <p class="desc">計算すると答えが「無限大」— 理論の危機を救った、物理学史上もっとも巧妙なアイデア「繰り込み」。
+        電子ひとつを主人公に、8章のストーリーでたどります。物理基礎の「電気」の知識から出発します。</p>
+    </div>
+    <div class="card"><div class="story-nav" id="renorm-nav"></div></div>
+    <div class="card" id="renorm-body"></div>
+  </section>
+
 </main>
 
 <footer>高校物理ビジュアル学習 — 物理基礎・物理の基本法則をグラフで体感する</footer>
@@ -636,6 +675,119 @@ function drawSpring(ctx, x0, y, x1, coils, amp) {
   }
   ctx.lineTo(x1, y);
   ctx.stroke();
+}
+
+/* ---------- 読み物(ストーリー)用ヘルパー ---------- */
+
+const supDig = n => ("" + n).split("").map(c => "⁰¹²³⁴⁵⁶⁷⁸⁹"[+c] ?? c).join("");
+
+function addCanvas(parent, w, h, title) {
+  const box = document.createElement("div");
+  box.className = "canvas-box";
+  box.style.marginTop = "10px";
+  if (title) {
+    const t = document.createElement("h3");
+    t.textContent = title;
+    box.appendChild(t);
+  }
+  const cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  box.appendChild(cv);
+  parent.appendChild(box);
+  return cv;
+}
+function addRow(parent) {
+  const d = document.createElement("div");
+  d.className = "canvas-row";
+  parent.appendChild(d);
+  return d;
+}
+function addControls(parent) {
+  const d = document.createElement("div");
+  d.className = "controls";
+  d.style.marginTop = "10px";
+  parent.appendChild(d);
+  return d;
+}
+function addFormula(parent) {
+  const d = document.createElement("div");
+  d.className = "formula";
+  d.style.marginTop = "10px";
+  parent.appendChild(d);
+  return d;
+}
+/* 閉じたひも(振動モードn)を描く */
+function drawLoop(ctx, cx, cy, R, amp, n, t, color) {
+  ctx.strokeStyle = color; ctx.lineWidth = 3;
+  ctx.beginPath();
+  for (let i = 0; i <= 140; i++) {
+    const th = i / 140 * 2 * Math.PI;
+    const r = R + amp * Math.sin(n * th) * Math.cos(2 * Math.PI * 0.9 * t);
+    const x = cx + r * Math.cos(th), y = cy + r * Math.sin(th);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.closePath(); ctx.stroke();
+}
+/* ⊕/⊖の電荷マーク */
+function chargeDot(ctx, x, y, r, plus, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = plus ? "#dc2626" : "#2563eb";
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = Math.max(1.5, r * 0.18);
+  ctx.beginPath();
+  ctx.moveTo(x - r * 0.5, y); ctx.lineTo(x + r * 0.5, y);
+  if (plus) { ctx.moveTo(x, y - r * 0.5); ctx.lineTo(x, y + r * 0.5); }
+  ctx.stroke();
+  ctx.restore();
+}
+/* 章立てストーリーを組み立てる。各章: {title, short, html, setup?} */
+function makeStory(prefix, chapters) {
+  const navEl = $(prefix + "-nav"), bodyEl = $(prefix + "-body");
+  const mod = { t: 0, playing: true, chapter: null };
+  chapters.forEach((ch, i) => {
+    const b = document.createElement("button");
+    b.textContent = `${i + 1}. ${ch.short}`;
+    b.addEventListener("click", () => go(i));
+    navEl.appendChild(b);
+  });
+  function go(i, scroll) {
+    mod.t = 0;
+    navEl.querySelectorAll("button").forEach((b, j) => b.classList.toggle("active", j === i));
+    bodyEl.innerHTML = "";
+    const ch = chapters[i];
+    const h = document.createElement("h3");
+    h.className = "story-title";
+    h.textContent = `第${i + 1}章 ${ch.title}`;
+    const tx = document.createElement("div");
+    tx.className = "story-text";
+    tx.innerHTML = ch.html;
+    bodyEl.append(h, tx);
+    const box = document.createElement("div");
+    bodyEl.appendChild(box);
+    mod.chapter = ch.setup ? ch.setup(box) : null;
+    const pn = document.createElement("div");
+    pn.className = "btns story-pn";
+    if (i > 0) {
+      const b = document.createElement("button");
+      b.textContent = "← 前の章";
+      b.addEventListener("click", () => go(i - 1, true));
+      pn.appendChild(b);
+    }
+    if (i < chapters.length - 1) {
+      const b = document.createElement("button");
+      b.className = "primary";
+      b.textContent = "次の章へ →";
+      b.addEventListener("click", () => go(i + 1, true));
+      pn.appendChild(b);
+    }
+    bodyEl.appendChild(pn);
+    if (scroll) navEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  mod.step = dt => { mod.t += dt; };
+  mod.render = () => { if (mod.chapter && mod.chapter.render) mod.chapter.render(mod.t); };
+  go(0);
+  return mod;
 }
 
 const G = 9.8;
@@ -1725,6 +1877,540 @@ let activeId = null;
   start();
 })();
 
+/* ---------- 14. 超ひも理論への道 ---------- */
+(() => {
+  const chapters = [
+
+  { title: "物質をどこまでも分けていくと?", short: "物質を分ける",
+    html: `<p>「すべてのものは、何からできているのだろう?」— 古代ギリシャの昔から、人類がずっと問い続けてきた質問です。りんごを半分に、また半分に…と割り続けたら、最後には何が残るのでしょうか。</p>
+      <p>スライダーで世界をどんどん拡大してみましょう。分子 → 原子 → 原子核 → 陽子・中性子 → クォークと、「最小の部品」の記録は何度も塗り替えられてきました。</p>
+      <p>そして現在の物理学(標準模型)では、電子やクォークは<b>大きさのない「点」</b>として扱われています。実験でも「電子は 10⁻¹⁸ m より小さい」ことまでしか分かっていません。ところが、この「点」という仮定が、実はやっかいな問題を抱えているのです…(次章へ)。</p>`,
+    setup(box) {
+      const ctrl = addControls(box);
+      const zs = makeSlider(ctrl, { label: "拡大レベル x(いまの大きさ 10⁻ˣ m)", unit: "", min: 0, max: 35, step: 0.1, value: 0, digits: 1 });
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 320, "いま見えている世界"), ctx = cv.getContext("2d");
+      const bands = [
+        [3, "日常の世界", "ボールや水滴。ニュートン力学の世界。"],
+        [8, "細胞・ウイルスの世界", "顕微鏡で見える世界。生物学の主役。"],
+        [10, "分子の世界", "原子がいくつか結びついたもの。化学の主役。"],
+        [13, "原子の世界(10⁻¹⁰ m)", "中心にごく小さな原子核、まわりに電子。原子の中はほとんど空っぽ。"],
+        [15, "原子核の世界(10⁻¹⁴ m)", "陽子と中性子がぎっしり詰まっている。"],
+        [18, "陽子の中(10⁻¹⁵ m)", "クォーク3個が「強い力」で結びついている。"],
+        [34, "素粒子:電子・クォーク", "どこまで拡大しても大きさが見つからない。「点」…?"],
+        [36, "プランク長(10⁻³⁵ m)", "もし超ひも理論が正しければ、ここに「ひも」が見えるはず。"],
+      ];
+      return { render(t) {
+        const x = zs.get();
+        let bi = bands.findIndex(b => x < b[0]);
+        if (bi < 0) bi = bands.length - 1;
+        const W = cv.width, H = cv.height, cx = W / 2, cy = 128;
+        ctx.clearRect(0, 0, W, H);
+        ctx.lineWidth = 2;
+        if (bi === 0) {
+          ctx.fillStyle = "#f59e0b";
+          ctx.beginPath(); ctx.arc(cx, cy, 70, 0, Math.PI * 2); ctx.fill();
+        } else if (bi === 1) {
+          ctx.strokeStyle = "#059669";
+          ctx.beginPath(); ctx.arc(cx, cy, 80, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = "#059669";
+          ctx.beginPath(); ctx.arc(cx - 20, cy - 10, 22, 0, Math.PI * 2); ctx.fill();
+          for (let i = 0; i < 6; i++) {
+            ctx.beginPath(); ctx.arc(cx + 48 * Math.cos(i * 1.3), cy + 48 * Math.sin(i * 2.1), 6, 0, Math.PI * 2); ctx.fill();
+          }
+        } else if (bi === 2) {
+          ctx.strokeStyle = "#6b7280";
+          ctx.beginPath(); ctx.moveTo(cx - 18, cy); ctx.lineTo(cx + 24, cy); ctx.stroke();
+          ctx.fillStyle = "#dc2626"; ctx.beginPath(); ctx.arc(cx - 45, cy, 34, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#2563eb"; ctx.beginPath(); ctx.arc(cx + 48, cy, 28, 0, Math.PI * 2); ctx.fill();
+        } else if (bi === 3) {
+          const grad = ctx.createRadialGradient(cx, cy, 5, cx, cy, 95);
+          grad.addColorStop(0, "rgba(37,99,235,.5)"); grad.addColorStop(1, "rgba(37,99,235,0)");
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(cx, cy, 95, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#dc2626"; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#6b7280"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+          ctx.fillText("電子の雲", cx + 90, cy - 75);
+          ctx.fillText("原子核", cx + 34, cy + 6);
+        } else if (bi === 4) {
+          for (let i = 0; i < 7; i++) {
+            const a = i * 2.4, r = i ? 30 : 0;
+            ctx.fillStyle = i % 2 ? "#2563eb" : "#dc2626";
+            ctx.beginPath(); ctx.arc(cx + r * Math.cos(a), cy + r * Math.sin(a), 20, 0, Math.PI * 2); ctx.fill();
+          }
+        } else if (bi === 5) {
+          ctx.strokeStyle = "#9ca3af"; ctx.setLineDash([6, 5]);
+          ctx.beginPath(); ctx.arc(cx, cy, 85, 0, Math.PI * 2); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(cx - 35, cy - 25); ctx.lineTo(cx + 40, cy - 15); ctx.lineTo(cx, cy + 40); ctx.closePath(); ctx.stroke();
+          [[-35, -25, "#dc2626"], [40, -15, "#2563eb"], [0, 40, "#059669"]].forEach(([dx, dy, c]) => {
+            ctx.fillStyle = c;
+            ctx.beginPath(); ctx.arc(cx + dx, cy + dy, 12, 0, Math.PI * 2); ctx.fill();
+          });
+          ctx.fillStyle = "#6b7280"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+          ctx.fillText("クォーク", cx + 90, cy + 60);
+        } else if (bi === 6) {
+          ctx.fillStyle = "#1f2937";
+          ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#6b7280"; ctx.font = "18px sans-serif"; ctx.textAlign = "center";
+          ctx.fillText("?", cx + 18, cy - 10);
+        } else {
+          drawLoop(ctx, cx, cy, 70, 14, 3, t, "#7c3aed");
+        }
+        // スケールバー
+        const bx0 = 60, bx1 = W - 60, by = H - 40;
+        ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(bx0, by); ctx.lineTo(bx1, by); ctx.stroke();
+        ctx.font = "11px sans-serif"; ctx.fillStyle = "#6b7280"; ctx.textAlign = "center";
+        for (let m = 0; m <= 35; m += 5) {
+          const px2 = bx0 + m / 35 * (bx1 - bx0);
+          ctx.beginPath(); ctx.moveTo(px2, by - 4); ctx.lineTo(px2, by + 4); ctx.stroke();
+          ctx.fillText(`10⁻${supDig(m)} m`, px2, by + 18);
+        }
+        const mx = bx0 + Math.min(x, 35) / 35 * (bx1 - bx0);
+        ctx.fillStyle = "#dc2626";
+        ctx.beginPath(); ctx.moveTo(mx, by - 14); ctx.lineTo(mx - 6, by - 24); ctx.lineTo(mx + 6, by - 24); ctx.closePath(); ctx.fill();
+        info.innerHTML = `いま見ているスケール:<b>10<sup>−${fmt(x, 1)}</sup> m</b> — <b>${bands[bi][1]}</b><br>${bands[bi][2]}`;
+      } };
+    } },
+
+  { title: "「大きさゼロの点」が起こす無限大", short: "点粒子の問題",
+    html: `<p>物理基礎で学んだように、電荷のまわりには電場があり、<b>電場はエネルギーを持ちます</b>。そして電荷に近づくほど電場は強くなります(クーロンの法則:強さは距離の2乗に反比例)。</p>
+      <p>では、電子の「すぐそば」までの電場のエネルギーを全部足し合わせたら、いくつになるでしょう?スライダーで近づいてみてください。<b>1桁近づくごとにエネルギーは1桁増え、r → 0 の極限では無限大</b>になってしまいます。</p>
+      <p>大きさゼロの「点」をまじめに扱うと、こうした無限大が計算のあちこちに顔を出します。電磁気力ではこの無限大を手なずける方法が見つかりました(それが「繰り込み」— 隣のタブの物語です)。しかし<b>重力ではその方法が通用しません</b>。</p>
+      <p>「点」であることをやめれば、この問題は消えるのではないか?— これが、ひも理論の出発点のひとつです。</p>`,
+    setup(box) {
+      const ctrl = addControls(box);
+      const rs = makeSlider(ctrl, { label: "電子への近づき方 x(距離 r = 10⁻ˣ)", unit: "", min: 0, max: 6, step: 0.1, value: 0, digits: 1 });
+      const info = addFormula(box);
+      const g = makeGraph(addCanvas(box, 1000, 300, "電場のエネルギーの合計(桁数で表示)"), { xlabel: "近づいた桁数 x", ylabel: "エネルギーの桁" });
+      return { render() {
+        const x = rs.get();
+        g.setRange(0, 6, 0, 7);
+        g.clear();
+        g.plot(u => u, 0, 6, "#dc2626");
+        g.guide(x, x, "#dc2626");
+        g.dot(x, x, "#dc2626");
+        g.ctx.save();
+        g.ctx.fillStyle = "#dc2626"; g.ctx.font = "13px sans-serif"; g.ctx.textAlign = "right";
+        g.ctx.fillText("r → 0 でどこまでも増える → ∞", g.px(5.9), g.py(6.5));
+        g.ctx.restore();
+        info.innerHTML = `エネルギー U ∝ 1/r:距離を 10<sup>−${fmt(x, 1)}</sup> 倍まで縮めると、エネルギーは <b>10<sup>${fmt(x, 1)}</sup> 倍</b>。` +
+          `<br>終わりはありません。<b>点(r = 0)の電子は無限大のエネルギーを持つ</b>ことになってしまう…!`;
+      } };
+    } },
+
+  { title: "発想の転換 — 粒子の正体は振動する「ひも」", short: "ひもの登場",
+    html: `<p>超ひも理論の提案は、言葉にするととてもシンプルです。<br><b>「素粒子は点ではなく、長さおよそ 10⁻³⁵ m の小さな『ひも』である」</b></p>
+      <p>バイオリンの弦を思い出してください。同じ1本の弦でも、振動のしかた(「定常波」タブで学んだ<b>n倍振動</b>!)によって違う高さの音が出ます。それと同じように、<b>1種類のひもが違う振動をすると、離れて見ている私たちには違う種類の粒子に見える</b> — これが中心アイデアです。</p>
+      <p>下は輪ゴムのような「閉じたひも」です。スライダーで振動モードを変えてみましょう。定常波の節(動かない点)と腹が、輪の上にできているのが分かります。</p>`,
+    setup(box) {
+      const ctrl = addControls(box);
+      const ns = makeSlider(ctrl, { label: "振動モード n", unit: "", min: 1, max: 6, step: 1, value: 2, digits: 0 });
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 320, "閉じたひもの振動(点線=振動していないときの形)"), ctx = cv.getContext("2d");
+      return { render(t) {
+        const n = ns.get();
+        const W = cv.width, H = cv.height, cx = W / 2, cy = H / 2, R = 105;
+        ctx.clearRect(0, 0, W, H);
+        ctx.strokeStyle = "#c7ccd6"; ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]);
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        drawLoop(ctx, cx, cy, R, 30, n, t, "#2563eb");
+        // 節(sin(nθ)=0 の点)
+        ctx.fillStyle = "#dc2626";
+        for (let k = 0; k < 2 * n; k++) {
+          const th = k * Math.PI / n;
+          ctx.beginPath(); ctx.arc(cx + R * Math.cos(th), cy + R * Math.sin(th), 4.5, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = "#6b7280"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+        ctx.fillText("赤い点=節(定常波と同じ!)", 20, 24);
+        info.innerHTML = `振動モード n = <b>${n}</b>(節が ${2 * n} 個)。「定常波」タブの ${n} 倍振動を、輪にしたものと同じです。`;
+      } };
+    } },
+
+  { title: "振動が激しいほど「重い」粒子", short: "振動と質量",
+    html: `<p>激しく振動しているひもは、大きなエネルギーを持ちます。そしてアインシュタインの <b>E = mc²</b> によれば、エネルギーと質量は同じもの。つまり—</p>
+      <p><b>おだやかな振動モード = 軽い粒子、激しい振動モード = 重い粒子</b></p>
+      <p>電子、クォーク、ニュートリノ、光子…素粒子にたくさんの種類があるのは、<b>1種類のひもにたくさんの「音色」がある</b>から。何十種類もの素粒子の一覧表が、「1本のひもの楽譜」にまとまってしまうかもしれない — これが超ひも理論の魅力です。</p>`,
+    setup(box) {
+      const ctrl = addControls(box);
+      const ns = makeSlider(ctrl, { label: "振動モード n", unit: "", min: 1, max: 6, step: 1, value: 1, digits: 0 });
+      const info = addFormula(box);
+      const row = addRow(box);
+      const cv = addCanvas(row, 480, 300, "ひもの振動"), ctx = cv.getContext("2d");
+      const g = makeGraph(addCanvas(row, 480, 300, "振動モードとエネルギー(=質量)"), { xlabel: "モード n", ylabel: "エネルギー ∝ 質量" });
+      return { render(t) {
+        const n = ns.get();
+        ctx.clearRect(0, 0, cv.width, cv.height);
+        drawLoop(ctx, cv.width / 2, cv.height / 2, 85, 26, n, t, n <= 2 ? "#059669" : n <= 4 ? "#f59e0b" : "#dc2626");
+        g.setRange(0.5, 6.5, 0, 7);
+        g.clear();
+        g.plot(u => u, 1, 6, "#9ca3af", 1.5, [4, 4]);
+        for (let k = 1; k <= 6; k++) g.dot(k, k, k === n ? "#dc2626" : "#c7ccd6", k === n ? 8 : 5);
+        info.innerHTML = `モード n = <b>${n}</b> → エネルギー(高さ)が大きいほど、E = mc² により<b>${n <= 2 ? "軽い粒子" : n <= 4 ? "中くらいの粒子" : "重い粒子"}</b>として観測されます。`;
+      } };
+    } },
+
+  { title: "最大の売り — 重力の粒子が「勝手に」出てくる", short: "重力子",
+    html: `<p>力にも、それを伝える粒子があります。電磁気力を伝えるのは光子。では重力を伝える粒子「<b>重力子</b>」は?— 点粒子の理論で重力子を扱うと計算が無限大だらけになり、どうしてもうまくいきません(第2章の問題が最悪の形で再発するのです)。</p>
+      <p>ところが1974年、閉じたひもの振動モードを調べていた物理学者たちは驚くべきことに気づきました。振動モードの一覧の中に、<b>重力子とまったく同じ性質(質量ゼロ・スピン2)のモードが必ず含まれている</b>のです。</p>
+      <p>ひも理論は、重力を「あとから入れよう」としなくても<b>勝手に重力を含んでしまう</b>。しかも、ひもには大きさがあるため、点粒子で起きた無限大がやわらげられる。これが「超ひも理論は量子重力の最有力候補」と呼ばれる理由です。</p>`,
+    setup(box) {
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 300, "重力子=閉じたひもの、ある特別な振動モード"), ctx = cv.getContext("2d");
+      return { render(t) {
+        ctx.clearRect(0, 0, cv.width, cv.height);
+        drawLoop(ctx, cv.width / 2, cv.height / 2, 85, 30, 2, t, "#7c3aed");
+        ctx.fillStyle = "#7c3aed"; ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("このタイプの振動(n = 2 型)が「質量ゼロ・スピン2」= 重力子の条件とぴったり一致", cv.width / 2, 30);
+        info.innerHTML = `一般相対性理論が要求する重力子の条件:<b>質量 0・スピン 2</b> ⇔ 閉じたひもの振動モードに<b>必ず</b>この粒子が現れる。`;
+      } };
+    } },
+
+  { title: "見えない次元 — 丸まった余剰次元", short: "余剰次元",
+    html: `<p>ひも理論の方程式には、不思議な要求があります。理論のつじつまが合うためには、空間は3次元ではなく<b>9次元</b>(時間を入れて10次元)必要だというのです。</p>
+      <p>「そんな次元、どこにも見えないけど?」— 遠くから見た細いホースを想像してください。遠目には1本の「線」(=1次元)。でも近づくと、ホースの表面には「筒のまわりを一周する方向」というもう1つの方向があります(=2次元)。</p>
+      <p>余分な6つの次元は、この円周のように<b>とても小さく丸まっている</b>ので、ふだんはまったく気づかない — と考えられています。スライダーで「ホース」に近づいてみましょう。</p>`,
+    setup(box) {
+      const ctrl = addControls(box);
+      const zs = makeSlider(ctrl, { label: "近づき方(0 = 遠くから ⇄ 1 = すぐそば)", unit: "", min: 0, max: 1, step: 0.01, value: 0, digits: 2 });
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 300, "ホース(丸まった次元)のたとえ"), ctx = cv.getContext("2d");
+      return { render(t) {
+        const z = zs.get();
+        const W = cv.width, H = cv.height, cy = H / 2;
+        const th = 3 + z * 95;
+        ctx.clearRect(0, 0, W, H);
+        ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(120, cy - th / 2); ctx.lineTo(880, cy - th / 2);
+        ctx.moveTo(120, cy + th / 2); ctx.lineTo(880, cy + th / 2);
+        ctx.stroke();
+        const rx = Math.max(th * 0.22, 1.2);
+        ctx.beginPath(); ctx.ellipse(880, cy, rx, th / 2, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(120, cy, rx, th / 2, 0, Math.PI / 2, Math.PI * 3 / 2); ctx.stroke();
+        if (z > 0.2) {
+          // 丸まった方向を回る点
+          const a = 2 * Math.PI * 0.5 * t;
+          ctx.setLineDash([4, 4]); ctx.strokeStyle = "#dc2626"; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.ellipse(500, cy, rx, th / 2, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = "#dc2626";
+          ctx.beginPath(); ctx.arc(500 + rx * Math.sin(a), cy - th / 2 * Math.cos(a), 6, 0, Math.PI * 2); ctx.fill();
+          ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+          ctx.fillText("丸まった次元を一周する方向", 500, cy - th / 2 - 16);
+        }
+        ctx.fillStyle = "#6b7280"; ctx.font = "13px sans-serif"; ctx.textAlign = "left";
+        ctx.fillText(z < 0.2 ? "遠くから:ただの1本の線(1次元)に見える" : "近づくと:「一周する方向」というもう1つの次元が見えてきた!", 120, 36);
+        info.innerHTML = `余剰次元が十分小さく丸まっていれば、日常のどんな実験でも気づけません。ひも理論では6つの次元がこのように隠れていると考えます。`;
+      } };
+    } },
+
+  { title: "なぜ実験で確かめられないのか", short: "検証の壁",
+    html: `<p>ひもの大きさはプランク長(約 10⁻³⁵ m)。原子(10⁻¹⁰ m)と比べても、その差は25桁 — 「原子と太陽系」の比よりもさらに大きな開きです。</p>
+      <p>小さいものを見るには、大きなエネルギーが必要です(これも波の性質:<b>波長が短いほど細かいものが見える</b>。「波」タブの v = fλ を思い出してください)。世界最大の加速器 LHC のエネルギーはおよそ 10⁴ GeV。ひもを直接見るにはおよそ <b>10¹⁹ GeV</b> — 15桁も足りません。</p>
+      <p>そのため現在は、宇宙初期の名残や理論の数学的な整合性など、間接的な検証の道が探られています。超ひも理論は美しい候補ですが、<b>「まだ実験で確認されていない仮説」である</b>ことは、正直に覚えておきましょう。</p>`,
+    setup(box) {
+      const cv = addCanvas(box, 1000, 300, "スケールの比較(1目盛り=10倍)"), ctx = cv.getContext("2d");
+      return { render() {
+        const W = cv.width;
+        ctx.clearRect(0, 0, W, cv.height);
+        const drawScale = (y, title, max, marks, color) => {
+          ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(80, y); ctx.lineTo(W - 60, y); ctx.stroke();
+          ctx.fillStyle = "#374151"; ctx.font = "13px sans-serif"; ctx.textAlign = "left";
+          ctx.fillText(title, 80, y - 44);
+          marks.forEach(([v, name, above]) => {
+            const px2 = 80 + v / max * (W - 140);
+            ctx.strokeStyle = color;
+            ctx.beginPath(); ctx.moveTo(px2, y - 8); ctx.lineTo(px2, y + 8); ctx.stroke();
+            ctx.fillStyle = color; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText(name, px2, above ? y - 14 : y + 22);
+          });
+        };
+        drawScale(90, "小ささくらべ(左端 = 1 m から何桁小さいか)", 35, [
+          [0, "人間", false], [10, "原子", true], [15, "陽子", false], [19, "実験で見えた最小", true], [35, "ひも(プランク長)", false],
+        ], "#2563eb");
+        drawScale(220, "エネルギーくらべ(GeV の桁数)", 19, [
+          [0, "陽子1個分", false], [4, "LHC(人類最強)", true], [19, "ひもが見えるエネルギー", false],
+        ], "#dc2626");
+        ctx.fillStyle = "#dc2626"; ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("← この間 15桁!(10の15乗倍) →", 80 + 11.5 / 19 * (W - 140), 260);
+      } };
+    } },
+
+  { title: "まとめ — 高校物理からひもまでの一本道", short: "まとめ",
+    html: `<p>ここまでの道のりを振り返りましょう。</p>
+      <ol style="line-height:2.1">
+        <li>物質を分けていくと、電子・クォークという「点」にたどり着いた</li>
+        <li>「大きさゼロの点」は、エネルギー無限大という深刻な問題を起こす(特に重力で)</li>
+        <li>そこで発想の転換:<b>粒子=小さなひもの振動</b>(バイオリンの定常波と同じ!)</li>
+        <li>振動モードのちがい=粒子の種類のちがい。E = mc² で激しい振動ほど重い粒子</li>
+        <li>閉じたひもの振動には<b>重力子が自動的に含まれる</b> → 量子重力の候補</li>
+        <li>理論が要求する余剰次元は、小さく丸まっていて見えない</li>
+        <li>ひもは小さすぎて、直接の実験検証はまだできていない</li>
+      </ol>
+      <p>この物語には、このアプリで学んだ「<b>定常波</b>」「<b>波の性質</b>」「<b>エネルギー</b>」「<b>電気</b>」がすべて登場しました。高校物理は、最先端の入り口に直結しています。</p>
+      <p>ところで第2章で出てきた「電磁気力の無限大は手なずけられた」という話 — その方法こそ、もうひとつの物語「繰り込み」です。</p>`,
+    setup(box) {
+      const d = document.createElement("div");
+      d.className = "btns";
+      const b = document.createElement("button");
+      b.className = "primary";
+      b.textContent = "続けて読む:繰り込みへの道 →";
+      b.addEventListener("click", () => activate("p-renorm"));
+      d.appendChild(b);
+      box.appendChild(d);
+      return null;
+    } },
+  ];
+  modules["p-string"] = makeStory("string", chapters);
+})();
+
+/* ---------- 15. 繰り込みへの道 ---------- */
+(() => {
+  const chapters = [
+
+  { title: "主役は電子 — 電場をまとった粒子", short: "電子と電場",
+    html: `<p>この物語の主人公は、いちばん身近な素粒子・<b>電子</b>です。物理基礎で学んだように、電子のまわりには電場が広がっています(「オームの法則」タブの回路も、この電場が電子を押すから電流が流れるのでした)。</p>
+      <p>大事なポイントはひとつ:<b>電場そのものがエネルギーを持つ</b>こと。つまり私たちが「電子」と呼んでいるものは、本体+まとっている電場のエネルギー、をひとまとめにした存在です。</p>
+      <p>図は電子のまわりの電場のようす。<b>近いほど電場が強く、エネルギーが濃く詰まっている</b>ことを覚えておいてください。この何気ない事実が、次章で大事件を起こします。</p>`,
+    setup(box) {
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 320, "電子のまわりの電場(矢印=電場の向き、色の濃さ=エネルギーの密度)"), ctx = cv.getContext("2d");
+      return { render(t) {
+        const W = cv.width, H = cv.height, cx = W / 2, cy = H / 2;
+        ctx.clearRect(0, 0, W, H);
+        for (let r = 140; r >= 30; r -= 22) {
+          ctx.fillStyle = `rgba(37,99,235,${0.05 + 0.9 * (30 / r) ** 2})`;
+          ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        }
+        for (let k = 0; k < 12; k++) {
+          const a = k * Math.PI / 6 + 0.06 * Math.sin(t);
+          arrow(ctx, cx + 165 * Math.cos(a), cy + 165 * Math.sin(a), cx + 42 * Math.cos(a), cy + 42 * Math.sin(a), "#9ca3af", 1.5);
+        }
+        chargeDot(ctx, cx, cy, 15, false);
+        ctx.fillStyle = "#6b7280"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("電子(負電荷)に向かって電場が向く", cx, H - 16);
+        info.innerHTML = `電場の強さ E ∝ 1/r²(クーロンの法則) → 電場のエネルギー密度 ∝ E²:<b>電子に近いほど急激に濃くなる</b>。`;
+      } };
+    } },
+
+  { title: "事件発生 — 電子の質量が無限大!?", short: "無限大の出現",
+    html: `<p>E = mc² によれば、電場のエネルギーも「質量のうち」です。では、電子がまとう電場ぶんの質量はどれくらいでしょう。クーロンの法則にしたがって電子のすぐ近くまで足し上げていくと…</p>
+      <p>スライダーで近づくほどエネルギーは際限なく増え、点(r = 0)までいくと<b>無限大</b>。つまり<b>「電子=点」と考えると、電子の質量は無限大になるはず</b>なのです。</p>
+      <p>でも、実際の電子の質量はたったの 0.511 MeV(9.1×10⁻³¹ kg)。理論と現実の真っ向勝負です。この矛盾は、1930年代から約20年間、当時の天才たちを悩ませ続けました。</p>`,
+    setup(box) {
+      const ctrl = addControls(box);
+      const rs = makeSlider(ctrl, { label: "電子への近づき方 x(距離 r = 10⁻ˣ)", unit: "", min: 0, max: 6, step: 0.1, value: 0, digits: 1 });
+      const info = addFormula(box);
+      const g = makeGraph(addCanvas(box, 1000, 300, "電場ぶんの質量(桁数で表示)"), { xlabel: "近づいた桁数 x", ylabel: "エネルギー(質量)の桁" });
+      return { render() {
+        const x = rs.get();
+        g.setRange(0, 6, 0, 7);
+        g.clear();
+        g.plot(u => u, 0, 6, "#dc2626");
+        g.plot(() => 0.5, 0, 6, "#059669", 2, [6, 4]);
+        g.guide(x, x, "#dc2626");
+        g.dot(x, x, "#dc2626");
+        g.ctx.save();
+        g.ctx.font = "13px sans-serif"; g.ctx.textAlign = "left";
+        g.ctx.fillStyle = "#059669"; g.ctx.fillText("実際の電子の質量(0.511 MeV)はこの高さ", g.px(0.3), g.py(0.8));
+        g.ctx.fillStyle = "#dc2626"; g.ctx.fillText("計算上の電場のエネルギー → ∞", g.px(3.2), g.py(6.3));
+        g.ctx.restore();
+        info.innerHTML = `計算:電場ぶんの質量は r → 0 で<b>無限大</b>に発散。観測:電子の質量は <b>0.511 MeV</b> で有限。<br>` +
+          `どちらかが間違っている…のではなく、<b>「質量」の考え方そのものを組み立て直す</b>必要がありました。`;
+      } };
+    } },
+
+  { title: "真空は空っぽではない — 泡立つ量子の海", short: "泡立つ真空",
+    html: `<p>解決のカギは、量子力学が明かした真空の姿にありました。量子力学によると、真空は「何もない空間」ではありません。</p>
+      <p>不確定性関係(ΔE・Δt ≳ h:短い時間ならエネルギーの帳尻は曖昧でよい)により、<b>ごく短い時間だけなら、エネルギーを「借金」して電子と陽電子(電子の反粒子・プラスの電荷)のペアが生まれ、すぐに消える</b>ことが許されるのです。</p>
+      <p>こうした粒子を<b>仮想粒子</b>と呼びます。真空は、生まれては消えるペアで絶えず泡立っている「量子の海」なのです。アニメーションの ⊕⊖ ペアがそのイメージです。</p>`,
+    setup(box) {
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 300, "真空のようす(想像図):電子・陽電子ペアが生まれては消える"), ctx = cv.getContext("2d");
+      const rnd = k => { const s = Math.sin(k * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+      return { render(t) {
+        const W = cv.width, H = cv.height;
+        ctx.clearRect(0, 0, W, H);
+        for (let i = 0; i < 26; i++) {
+          const cycle = 2.4, phase = rnd(i) * cycle, life = 1.0;
+          const local = (t + phase) % cycle;
+          const gen = Math.floor((t + phase) / cycle);
+          if (local < life) {
+            const a = Math.sin(Math.PI * local / life);
+            const x = 50 + rnd(i * 13 + gen * 7) * (W - 100);
+            const y = 40 + rnd(i * 29 + gen * 3) * (H - 80);
+            const sep = 9 + 7 * a;
+            chargeDot(ctx, x - sep, y, 8, true, a);
+            chargeDot(ctx, x + sep, y, 8, false, a);
+          }
+        }
+        info.innerHTML = `不確定性関係 ΔE・Δt ≳ h:借りるエネルギーが大きいほど、返すまでの時間は短い。<br>` +
+          `ペアの寿命はおよそ 10⁻²¹ 秒以下 — 直接は見えませんが、その影響は<b>測定できます</b>(次章)。`;
+      } };
+    } },
+
+  { title: "真空偏極 — 電荷は雲に隠されている", short: "電荷の遮蔽",
+    html: `<p>電子のすぐそばで仮想ペアが生まれると、⊕は電子に引き寄せられ、⊖は遠ざけられます。つまり電子は、<b>⊕をやや内側に向けたペアの雲</b>を常にまとうことになります。これを<b>真空偏極</b>と呼びます。</p>
+      <p>外から見ると、雲の ⊕ が電子の ⊖ を部分的に打ち消します。その結果、<b>遠くから測った電荷は「本来の電荷」より小さく見える</b>のです。教科書に載っている電気素量 e = 1.6×10⁻¹⁹ C は、実は「雲越しに見た値」でした。</p>
+      <p>スライダーで見る距離を変えてみましょう。近づくほど雲の内側に入り込むので、有効電荷が大きくなっていきます。<b>これは加速器実験で実際に確認されています。</b></p>`,
+    setup(box) {
+      const ctrl = addControls(box);
+      const xs = makeSlider(ctrl, { label: "どのくらい近くから見るか(0 = 遠い ⇄ 3 = とても近い)", unit: "", min: 0, max: 3, step: 0.05, value: 0, digits: 2 });
+      const info = addFormula(box);
+      const row = addRow(box);
+      const cv = addCanvas(row, 480, 320, "電子と、仮想ペアの雲"), ctx = cv.getContext("2d");
+      const g = makeGraph(addCanvas(row, 480, 320, "見る距離と有効電荷"), { xlabel: "近づき方 →", ylabel: "有効電荷(遠方 = 1)" });
+      const eff = u => 1 + 0.05 * u + 0.04 * u * u;
+      return { render(t) {
+        const x = xs.get();
+        const W = cv.width, H = cv.height, cx = W / 2, cy = H / 2;
+        ctx.clearRect(0, 0, W, H);
+        chargeDot(ctx, cx, cy, 13, false);
+        for (let ring = 0; ring < 3; ring++) {
+          const r = 55 + ring * 40, cnt = 6 + ring * 3;
+          for (let k = 0; k < cnt; k++) {
+            const a = k * 2 * Math.PI / cnt + ring * 0.4 + 0.05 * Math.sin(t + ring);
+            chargeDot(ctx, cx + (r - 9) * Math.cos(a), cy + (r - 9) * Math.sin(a), 6, true, 0.85);
+            chargeDot(ctx, cx + (r + 9) * Math.cos(a), cy + (r + 9) * Math.sin(a), 6, false, 0.85);
+          }
+        }
+        const rview = 30 + 125 * Math.pow(10, -x / 1.6);
+        ctx.strokeStyle = "#059669"; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
+        ctx.beginPath(); ctx.arc(cx, cy, rview, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#059669"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("ここから内側が「見えている電荷」", cx, 20);
+        g.setRange(0, 3, 0.9, 1.5);
+        g.clear();
+        g.plot(eff, 0, 3, "#2563eb");
+        g.guide(x, eff(x), "#2563eb");
+        g.dot(x, eff(x), "#2563eb");
+        info.innerHTML = `いまの有効電荷:遠方の値の <b>${fmt(eff(x), 2)} 倍</b>。` +
+          `遠くから見た電荷(教科書の e)は、⊕の雲に<b>遮蔽された後の値</b>です。`;
+      } };
+    } },
+
+  { title: "繰り込み — 無限大を「見えない値」に押し込める", short: "繰り込み",
+    html: `<p>いよいよ核心です。電子の質量を、2つの部分に分けて考えます。</p>
+      <p><b>観測される質量 m = 裸の質量 m₀ + 雲の補正 δm</b></p>
+      <p>m₀ は「雲を着る前のすっぴんの質量」— しかし電子は<b>雲を脱ぐことができない</b>ので、m₀ は原理的に測定不可能です。一方 δm は、細かい泡まで真面目に足すと無限大になりかねない部分。</p>
+      <p>ここで発想の転換。<b>「測れるのは合計 m だけ。だったら δm がどれほど大きくても、m₀ をそれを打ち消すように選び、合計を実験値 0.511 MeV に固定してしまえばよい」</b>。無限大は、誰にも見えない m₀ の中に押し込められました。これが<b>繰り込み(くりこみ)</b>です。</p>
+      <p>化粧に例えると:すっぴん(m₀)は誰も見たことがなく、見えるのはいつも化粧後(m)。ならば理論は最初から化粧後の顔だけで書けばいい、というわけです。スライダーは「どこまで細かい泡まで計算に入れるか」(カットオフ Λ)。Λ をどれだけ上げても、合計が変わらないことを確かめてください。</p>`,
+    setup(box) {
+      const ctrl = addControls(box);
+      const Ls = makeSlider(ctrl, { label: "カットオフ Λ:どこまで細かい泡まで入れるか(桁)", unit: "", min: 1, max: 15, step: 0.5, value: 3, digits: 1 });
+      const info = addFormula(box);
+      const row = addRow(box);
+      const bar = addCanvas(row, 480, 300, "質量の内訳(合計はつねに実験値)"), bctx = bar.getContext("2d");
+      const g = makeGraph(addCanvas(row, 480, 300, "カットオフを上げると…"), { xlabel: "カットオフ Λ(桁)", ylabel: "質量 [MeV]" });
+      const MOBS = 0.511;
+      const dm = L => 0.03 * L;
+      return { render() {
+        const L = Ls.get();
+        const d = dm(L), m0 = MOBS - d;
+        const W = bar.width, H = bar.height;
+        bctx.clearRect(0, 0, W, H);
+        const y0 = H - 50, scale = (H - 100) / MOBS;
+        const bx = W / 2 - 60, bw = 120;
+        bctx.fillStyle = "#2563eb";
+        bctx.fillRect(bx, y0 - m0 * scale, bw, m0 * scale);
+        bctx.fillStyle = "#ea580c";
+        bctx.fillRect(bx, y0 - (m0 + d) * scale, bw, d * scale);
+        bctx.strokeStyle = "#059669"; bctx.lineWidth = 2; bctx.setLineDash([6, 4]);
+        bctx.beginPath(); bctx.moveTo(60, y0 - MOBS * scale); bctx.lineTo(W - 60, y0 - MOBS * scale); bctx.stroke();
+        bctx.setLineDash([]);
+        bctx.font = "12px sans-serif"; bctx.textAlign = "left";
+        bctx.fillStyle = "#2563eb"; bctx.fillText(`裸の質量 m₀ = ${fmt(m0, 3)}(測れない)`, bx + bw + 12, y0 - m0 * scale / 2);
+        bctx.fillStyle = "#ea580c"; bctx.fillText(`雲の補正 δm = ${fmt(d, 3)}`, bx + bw + 12, y0 - (m0 + d / 2) * scale);
+        bctx.fillStyle = "#059669"; bctx.fillText("観測値 0.511 MeV(固定)", 60, y0 - MOBS * scale - 8);
+        bctx.fillStyle = "#374151"; bctx.textAlign = "center";
+        bctx.fillText("電子の質量", bx + bw / 2, H - 26);
+        g.setRange(1, 15, -0.1, 0.7);
+        g.clear();
+        g.plot(() => MOBS, 1, 15, "#059669", 2, [6, 4]);
+        g.plot(u => dm(u), 1, 15, "#ea580c");
+        g.plot(u => MOBS - dm(u), 1, 15, "#2563eb");
+        g.dot(L, d, "#ea580c");
+        g.dot(L, m0, "#2563eb");
+        info.innerHTML = `m = m₀ + δm = <span class="lit">${fmt(m0, 3)}</span> + <span class="lit">${fmt(d, 3)}</span> = <b>0.511 MeV(いつでも実験値)</b><br>` +
+          `Λ → ∞ の極限では δm → ∞ ですが、そのぶん m₀ を調整すれば合計は有限のまま。<b>測れる量だけで理論を語り直す</b>のが繰り込みです。`;
+      } };
+    } },
+
+  { title: "証拠 — 「定数」は走る", short: "走る定数",
+    html: `<p>「無限大を隠しただけでは?」— いいえ。繰り込みには<b>検証可能な予言</b>があります。第4章で見たとおり、電荷は見る距離(=実験のエネルギー)によって変わって見える。つまり<b>「結合定数」は定数ではなく、エネルギーとともに"走る"</b>のです。</p>
+      <p>電磁気力の強さを表す微細構造定数 α は、低エネルギーでは 1/137。ところが高エネルギー実験(Z粒子のスケール、約91 GeV)では約 <b>1/128</b> まで大きくなることが実測されています。</p>
+      <p>逆に、クォークを結びつける「強い力」の α<sub>s</sub> は、高エネルギーほど<b>弱く</b>なります(漸近的自由性:2004年ノーベル賞)。どちらも繰り込み理論の計算とぴったり一致 — 繰り込みは「言い訳」ではなく、実験で当たる物理なのです。</p>`,
+    setup(box) {
+      const ctrl = addControls(box);
+      const Qs = makeSlider(ctrl, { label: "実験のエネルギー(GeV の桁:10ˣ GeV)", unit: "", min: 0, max: 4, step: 0.05, value: 0, digits: 2 });
+      const info = addFormula(box);
+      const row = addRow(box);
+      const g1 = makeGraph(addCanvas(row, 480, 300, "電磁気力:α は強くなる"), { xlabel: "エネルギー(GeVの桁)", ylabel: "α × 1000" });
+      const g2 = makeGraph(addCanvas(row, 480, 300, "強い力:αs は弱くなる(漸近的自由)"), { xlabel: "エネルギー(GeVの桁)", ylabel: "αs" });
+      const alinv = x => 137 - 1.81 * (x + 3);      // 1/α の近似
+      const als = x => 12 * Math.PI / (23 * Math.log(Math.pow(10, 2 * x) / 0.04));
+      return { render() {
+        const x = Qs.get();
+        g1.setRange(0, 4, 7.2, 8.1);
+        g1.clear();
+        g1.plot(u => 1000 / alinv(u), 0, 4, "#2563eb");
+        g1.dot(x, 1000 / alinv(x), "#2563eb");
+        g2.setRange(0, 4, 0, 0.6);
+        g2.clear();
+        g2.plot(als, 0.1, 4, "#dc2626");
+        g2.dot(Math.max(x, 0.1), als(Math.max(x, 0.1)), "#dc2626");
+        info.innerHTML = `いまのエネルギー 10<sup>${fmt(x, 1)}</sup> GeV:` +
+          `電磁気力 α = <b>1/${fmt(alinv(x), 1)}</b>(低エネルギーの 1/137 より強い)、` +
+          `強い力 α<sub>s</sub> = <b>${fmt(als(Math.max(x, 0.1)), 2)}</b>(高エネルギーほど弱い)`;
+      } };
+    } },
+
+  { title: "繰り込みできる理論、できない理論", short: "可能と不可能",
+    html: `<p>無限大の「押し込め先」(m₀ のようなパラメータ)が<b>有限個</b>で済む理論を<b>繰り込み可能</b>と呼びます。QED(電磁気の量子論)は質量と電荷のたった2つで全ての無限大が処理でき、標準模型全体も繰り込み可能です。だから素粒子物理は精密な予言ができるのです。</p>
+      <table class="map">
+        <tr><th>理論</th><th>繰り込み</th><th>意味</th></tr>
+        <tr><td>QED(電磁気力)</td><td>可能(パラメータ2個)</td><td>史上最高精度の理論に</td></tr>
+        <tr><td>標準模型(電磁気+弱い力+強い力)</td><td>可能</td><td>現代素粒子物理の土台</td></tr>
+        <tr><td>重力(一般相対性理論)の量子化</td><td><b>不可能(無限個必要)</b></td><td>予言能力を失う</td></tr>
+      </table>
+      <p>重力を同じ方法で量子化しようとすると、無限大を押し込むのに<b>無限個のパラメータ</b>が必要になり、理論は予言能力を失います。これが「量子重力はむずかしい」の正体です。</p>
+      <p>この行き詰まりを打ち破る候補が、「点をやめて、ひもにする」— そう、もうひとつの物語で見た<b>超ひも理論</b>です。2つの物語は、ここでつながります。</p>`,
+    setup(box) {
+      const d = document.createElement("div");
+      d.className = "btns";
+      const b = document.createElement("button");
+      b.className = "primary";
+      b.textContent = "もうひとつの物語:超ひも理論への道 →";
+      b.addEventListener("click", () => activate("p-string"));
+      d.appendChild(b);
+      box.appendChild(d);
+      return null;
+    } },
+
+  { title: "まとめ — 物理学史上もっとも精密な理論へ", short: "まとめ",
+    html: `<p>電子ひとつから始まった物語を振り返りましょう。</p>
+      <ol style="line-height:2.1">
+        <li>電場はエネルギーを持つ(物理基礎の知識!)</li>
+        <li>電子を「点」とすると、電場のエネルギーで質量が無限大になってしまう</li>
+        <li>量子力学の真空は、仮想ペアで泡立っている</li>
+        <li>ペアの雲が電荷を遮蔽する(真空偏極)— 教科書の e は「雲越しの値」</li>
+        <li><b>測れない「裸の値」に無限大を押し込め、観測値を入力に使う=繰り込み</b></li>
+        <li>予言「結合定数は走る」は実験でぴったり確認された</li>
+        <li>重力は繰り込めない → 超ひも理論へバトンタッチ</li>
+      </ol>
+      <p>この理論を完成させた朝永振一郎(日本人2人目のノーベル賞)・シュウィンガー・ファインマンは、1965年にノーベル物理学賞を受賞しました。</p>
+      <p>繰り込み後のQEDが予言する電子の磁石としての強さ(g因子)は、実験値と<b>10桁を超える精度</b>で一致します。これは東京–大阪間の距離を髪の毛1本より細かい精度で当てるようなもの — <b>人類が作った理論の中で、もっとも精密に検証された理論</b>です。</p>
+      <p>「無限大が出たら理論は死ぬ」のではなく、<b>「測れる量だけで語り直せば、理論は生き返る」</b>。この考え方は、素粒子から磁石や超伝導の理論まで、現代物理のすみずみで使われています。</p>` },
+  ];
+  modules["p-renorm"] = makeStory("renorm", chapters);
+})();
+
 /* ---------- タブとメインループ ---------- */
 const TABS = [
   ["p-home", "はじめに"],
@@ -1741,6 +2427,8 @@ const TABS = [
   ["p-ohm", "オームの法則"],
   ["p-emi", "電磁誘導"],
   ["p-quiz", "確認クイズ"],
+  ["p-string", "超ひも理論への道"],
+  ["p-renorm", "繰り込みへの道"],
 ];
 const nav = $("tabs");
 TABS.forEach(([id, name]) => {
