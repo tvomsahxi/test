@@ -114,6 +114,32 @@
     border-radius: 8px;
     display: block;
   }
+  .slider-block select {
+    width: 100%;
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 13px;
+    background: #fff;
+  }
+  .quiz-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--sub); margin-bottom: 8px; }
+  .quiz-q { font-size: 15px; line-height: 1.9; margin-bottom: 12px; }
+  .quiz-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (max-width: 640px) { .quiz-choices { grid-template-columns: 1fr; } }
+  .quiz-choices button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .quiz-choices button:hover:enabled { background: #eff6ff; }
+  .quiz-choices button:disabled { cursor: default; }
+  .quiz-choices button.correct { background: #d1fae5; border-color: #059669; font-weight: bold; }
+  .quiz-choices button.wrong { background: #fee2e2; border-color: #dc2626; }
+  .quiz-fb { margin-top: 10px; font-size: 14px; line-height: 1.8; }
   table.map { border-collapse: collapse; font-size: 13px; width: 100%; }
   table.map th, table.map td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; }
   table.map th { background: #eef2ff; }
@@ -151,7 +177,14 @@
         <tr><td>力学的エネルギー</td><td>物理基礎</td><td>仕事とエネルギー</td><td>mgh = ½mv² + mgh′</td></tr>
         <tr><td>単振動</td><td>物理</td><td>円運動と単振動</td><td>x = A sin ωt,  T = 2π√(m/k)</td></tr>
         <tr><td>波</td><td>物理基礎</td><td>波の性質</td><td>v = fλ,  y = A sin 2π(t/T − x/λ)</td></tr>
+        <tr><td>運動量保存</td><td>物理</td><td>運動量の保存</td><td>m₁v₁ + m₂v₂ = m₁v₁′ + m₂v₂′</td></tr>
+        <tr><td>定常波</td><td>物理基礎</td><td>音(弦・気柱の振動)</td><td>λ = 2L/n(弦・開管), 4L/(2n−1)(閉管)</td></tr>
+        <tr><td>ドップラー効果</td><td>物理</td><td>音の伝わり方</td><td>f′ = fV/(V − v_s)</td></tr>
+        <tr><td>レンズ</td><td>物理</td><td>光(レンズの作図)</td><td>1/a + 1/b = 1/f</td></tr>
+        <tr><td>熱量の保存</td><td>物理基礎</td><td>熱</td><td>m₁c₁(t₁−T) = m₂c₂(T−t₂)</td></tr>
         <tr><td>オームの法則</td><td>物理基礎</td><td>電気</td><td>V = RI,  P = VI</td></tr>
+        <tr><td>電磁誘導</td><td>物理</td><td>電磁誘導</td><td>V = vBl,  V = −ΔΦ/Δt</td></tr>
+        <tr><td>確認クイズ</td><td>共通</td><td>全単元</td><td>数値がランダムに変わる計算・知識問題</td></tr>
       </table>
       <p class="desc">グラフの読み方のポイント:<b>v-tグラフの傾き=加速度、面積=変位</b>。波では<b>y-xグラフ(ある時刻の波の形)とy-tグラフ(ある場所の振動)</b>の区別が最重要です。</p>
     </div>
@@ -278,6 +311,148 @@
     </div>
   </section>
 
+  <!-- ===== 7. 運動量保存 ===== -->
+  <section class="panel" id="p-mom">
+    <div class="card">
+      <h2>運動量保存(1次元の衝突)<span class="unit-tag">物理</span></h2>
+      <p class="desc">2つの球が一直線上で衝突します。外力がはたらかないので<b>運動量の和 m₁v₁ + m₂v₂ は衝突の前後で変わりません</b>。
+        反発係数 e を変えると、e = 1(弾性衝突)では運動エネルギーも保存され、e &lt; 1 では減ることを確かめましょう。x-tグラフの折れ曲がりが衝突の瞬間です。</p>
+    </div>
+    <div class="card">
+      <div class="controls" id="mom-controls"></div>
+      <div class="formula" id="mom-formula"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-box" style="margin-bottom:12px">
+        <h3>衝突のようす</h3>
+        <canvas id="mom-sim" width="1000" height="160"></canvas>
+      </div>
+      <div class="canvas-row">
+        <div class="canvas-box"><h3>x-t グラフ(折れ曲がり=衝突)</h3><canvas id="mom-xt" width="480" height="300"></canvas></div>
+        <div class="canvas-box"><h3>運動量の内訳(衝突前後)</h3><canvas id="mom-bar" width="480" height="300"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 8. 定常波 ===== -->
+  <section class="panel" id="p-stand">
+    <div class="card">
+      <h2>定常波(弦・気柱の振動)<span class="unit-tag">物理基礎</span></h2>
+      <p class="desc">両端が固定された弦や、管の中の空気(気柱)には、特定の波長の<b>定常波</b>だけができます。
+        <b>節(振動しない点・赤)と腹(最も大きく振動する点・緑)</b>の位置に注目。
+        閉管では閉じた端が節・開いた端が腹になるため、<b>奇数倍振動しか出ない</b>ことを確かめましょう。</p>
+    </div>
+    <div class="card">
+      <div class="controls" id="stand-controls"></div>
+      <div class="formula" id="stand-formula"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-box"><h3>定常波のようす(点線=振動の範囲)</h3><canvas id="stand-sim" width="1000" height="260"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ===== 9. ドップラー効果 ===== -->
+  <section class="panel" id="p-doppler">
+    <div class="card">
+      <h2>ドップラー効果<span class="unit-tag">物理</span></h2>
+      <p class="desc">音源が動くと、<b>前方では波面がつまって波長が短く(=高い音)、後方では広がって波長が長く(=低い音)</b>なります。
+        円は等しい時間間隔で出た波面です。音源の速さを上げて、前後の波面の間隔の違いを観察しましょう(音速 V = 340 m/s)。</p>
+    </div>
+    <div class="card">
+      <div class="controls" id="dop-controls"></div>
+      <div class="formula" id="dop-formula"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-box" style="margin-bottom:12px">
+        <h3>波面のようす(音源は右へ移動中)</h3>
+        <canvas id="dop-sim" width="1000" height="360"></canvas>
+      </div>
+      <div class="canvas-box"><h3>聞こえる振動数 f′ と音源の速さの関係</h3><canvas id="dop-graph" width="1000" height="300"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ===== 10. レンズ ===== -->
+  <section class="panel" id="p-lens">
+    <div class="card">
+      <h2>凸レンズによる像(レンズの作図)<span class="unit-tag">物理</span></h2>
+      <p class="desc">3本の代表光線(①光軸に平行→焦点へ ②中心を直進 ③手前の焦点を通り→平行)の交点に像ができます。
+        <b>a &gt; f では倒立実像、a &lt; f では正立虚像(拡大・虫めがね)</b>。a = 2f のとき同じ大きさの実像になることも確かめましょう。</p>
+    </div>
+    <div class="card">
+      <div class="controls" id="lens-controls"></div>
+      <div class="formula" id="lens-formula"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-box" style="margin-bottom:12px">
+        <h3>光線の作図(F = 焦点)</h3>
+        <canvas id="lens-sim" width="1000" height="360"></canvas>
+      </div>
+      <div class="canvas-box"><h3>像の位置 b と物体の距離 a の関係(a = f が漸近線)</h3><canvas id="lens-graph" width="1000" height="300"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ===== 11. 熱量の保存 ===== -->
+  <section class="panel" id="p-heat">
+    <div class="card">
+      <h2>熱量の保存(熱平衡)<span class="unit-tag">物理基礎</span></h2>
+      <p class="desc">高温の金属を水に入れると、熱は高温側から低温側へ移動し、やがて<b>同じ温度(熱平衡)</b>になります。
+        <b>金属が失った熱量 = 水が得た熱量</b>(熱量の保存)。比熱が大きい水は温まりにくいことも確認しましょう(水の比熱 c = 4.2 J/(g·K))。</p>
+    </div>
+    <div class="card">
+      <div class="controls" id="heat-controls"></div>
+      <div class="formula" id="heat-formula"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-row">
+        <div class="canvas-box" style="flex:0 1 260px;min-width:220px"><h3>実験のようす</h3><canvas id="heat-sim" width="260" height="300"></canvas></div>
+        <div class="canvas-box"><h3>温度と時間の関係(緑の点線=平衡温度 T)</h3><canvas id="heat-graph" width="700" height="300"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 12. 電磁誘導 ===== -->
+  <section class="panel" id="p-emi">
+    <div class="card">
+      <h2>電磁誘導(磁場中を動く導体棒)<span class="unit-tag">物理</span></h2>
+      <p class="desc">紙面の裏向き(×印)の磁場の中で、導体棒がレール上を速さ v で動くと、回路を貫く<b>磁束 Φ = Blx が増え続ける</b>ため、
+        誘導起電力 <b>V = vBl</b> が生じます(ファラデーの法則 V = ΔΦ/Δt)。
+        流れる誘導電流は磁束の増加を妨げる向き(レンツの法則)で、棒は運動を妨げる向きの力を受けます。</p>
+    </div>
+    <div class="card">
+      <div class="controls" id="emi-controls"></div>
+      <div class="formula" id="emi-formula"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-box" style="margin-bottom:12px">
+        <h3>導体棒とレール(×=紙面の裏向きの磁場)</h3>
+        <canvas id="emi-sim" width="1000" height="300"></canvas>
+      </div>
+      <div class="canvas-row">
+        <div class="canvas-box"><h3>磁束 Φ-t グラフ(傾き = ΔΦ/Δt)</h3><canvas id="emi-phi" width="480" height="280"></canvas></div>
+        <div class="canvas-box"><h3>誘導起電力 V-t グラフ(一定)</h3><canvas id="emi-v" width="480" height="280"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 13. 確認クイズ ===== -->
+  <section class="panel" id="p-quiz">
+    <div class="card">
+      <h2>確認クイズ<span class="unit-tag">全単元</span></h2>
+      <p class="desc">全単元から10問出題します。数値は毎回ランダムに変わるので、繰り返し練習できます。
+        間違えた問題は解説を読んで、対応するタブのシミュレーションで確かめましょう。</p>
+    </div>
+    <div class="card">
+      <div class="quiz-meta"><span id="quiz-prog"></span><span id="quiz-score"></span></div>
+      <div class="quiz-q" id="quiz-q"></div>
+      <div class="quiz-choices" id="quiz-choices"></div>
+      <div class="quiz-fb" id="quiz-fb"></div>
+      <div class="btns" style="margin-top:12px">
+        <button class="primary" id="quiz-next" style="display:none">次の問題へ</button>
+        <button id="quiz-restart">最初からやり直す</button>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <footer>高校物理ビジュアル学習 — 物理基礎・物理の基本法則をグラフで体感する</footer>
@@ -347,6 +522,9 @@ function makeGraph(canvas, opts) {
     },
     plot(fn, t0, t1, color, width = 2, dash = null) {
       ctx.save();
+      ctx.beginPath();
+      ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b);
+      ctx.clip();
       ctx.strokeStyle = color; ctx.lineWidth = width;
       if (dash) ctx.setLineDash(dash);
       ctx.beginPath();
@@ -867,15 +1045,702 @@ let activeId = null;
   modules["p-ohm"] = mod;
 })();
 
+/* ---------- 7. 運動量保存 ---------- */
+(() => {
+  const mod = { t: 0, playing: true };
+  const ctrl = $("mom-controls");
+  const rst = () => { mod.t = 0; };
+  const m1s = makeSlider(ctrl, { label: "質量 m₁", unit: "kg", min: 0.5, max: 4, step: 0.5, value: 2, onchange: rst });
+  const v1s = makeSlider(ctrl, { label: "初速度 v₁", unit: "m/s", min: 0, max: 8, step: 0.5, value: 5, onchange: rst });
+  const m2s = makeSlider(ctrl, { label: "質量 m₂", unit: "kg", min: 0.5, max: 4, step: 0.5, value: 1, onchange: rst });
+  const v2s = makeSlider(ctrl, { label: "初速度 v₂", unit: "m/s", min: -5, max: 5, step: 0.5, value: 0, onchange: rst });
+  const es = makeSlider(ctrl, { label: "反発係数 e", unit: "", min: 0, max: 1, step: 0.05, value: 1, digits: 2, onchange: rst });
+  makeControls(ctrl, mod);
+
+  const sim = $("mom-sim"), sctx = sim.getContext("2d");
+  const gx = makeGraph($("mom-xt"), { xlabel: "t [s]", ylabel: "x [m]" });
+  const bar = $("mom-bar"), bctx = bar.getContext("2d");
+
+  const par = () => {
+    const m1 = m1s.get(), v1 = v1s.get(), m2 = m2s.get(), v2 = v2s.get(), e = es.get();
+    const r1 = 0.28 + 0.09 * m1, r2 = 0.28 + 0.09 * m2;
+    const x10 = 1.5, x20 = 7.5;
+    const rel = v1 - v2;
+    const tc = rel > 1e-6 ? ((x20 - r2) - (x10 + r1)) / rel : Infinity;
+    const v1p = ((m1 - e * m2) * v1 + (1 + e) * m2 * v2) / (m1 + m2);
+    const v2p = ((1 + e) * m1 * v1 + (m2 - e * m1) * v2) / (m1 + m2);
+    const tw = isFinite(tc) ? tc + 3 : 4;
+    return { m1, v1, m2, v2, e, r1, r2, x10, x20, tc, v1p, v2p, tw };
+  };
+  mod.step = dt => { const { tw } = par(); mod.t = (mod.t + dt * 0.6) % tw; };
+  mod.render = () => {
+    const p = par();
+    const t = mod.t;
+    const x1 = tt => tt < p.tc ? p.x10 + p.v1 * tt : p.x10 + p.v1 * p.tc + p.v1p * (tt - p.tc);
+    const x2 = tt => tt < p.tc ? p.x20 + p.v2 * tt : p.x20 + p.v2 * p.tc + p.v2p * (tt - p.tc);
+    const u1 = t < p.tc ? p.v1 : p.v1p, u2 = t < p.tc ? p.v2 : p.v2p;
+
+    // 衝突アニメーション
+    const W = sim.width, H = sim.height, cy = H - 55;
+    sctx.clearRect(0, 0, W, H);
+    const sx = X => 40 + X / 10 * (W - 80);
+    sctx.strokeStyle = "#9ca3af"; sctx.lineWidth = 2;
+    sctx.beginPath(); sctx.moveTo(20, cy + 34); sctx.lineTo(W - 20, cy + 34); sctx.stroke();
+    const drawBall = (X, r, color, u, name) => {
+      const px = sx(X), pr = r * (W - 80) / 10;
+      arrow(sctx, px, cy - pr - 12, px + u * 9, cy - pr - 12, color);
+      sctx.fillStyle = color;
+      sctx.beginPath(); sctx.arc(px, cy + 34 - pr, pr, 0, Math.PI * 2); sctx.fill();
+      sctx.fillStyle = "#374151"; sctx.font = "12px sans-serif"; sctx.textAlign = "center";
+      sctx.fillText(`${name}  v = ${fmt(u)} m/s`, px, cy + 52);
+    };
+    drawBall(x1(t), p.r1, "#2563eb", u1, "m₁");
+    drawBall(x2(t), p.r2, "#dc2626", u2, "m₂");
+    sctx.fillStyle = "#6b7280"; sctx.textAlign = "left"; sctx.font = "12px sans-serif";
+    sctx.fillText(isFinite(p.tc) ? (t < p.tc ? "衝突前" : "衝突後") : "この条件では衝突しません(v₁ ≦ v₂)", 20, 20);
+
+    // x-t グラフ
+    gx.setRange(0, p.tw, 0, 10);
+    gx.clear();
+    gx.plot(x1, 0, p.tw, "#2563eb");
+    gx.plot(x2, 0, p.tw, "#dc2626");
+    if (isFinite(p.tc) && p.tc < p.tw) {
+      gx.ctx.save();
+      gx.ctx.strokeStyle = "#9ca3af"; gx.ctx.setLineDash([4, 4]);
+      gx.ctx.beginPath(); gx.ctx.moveTo(gx.px(p.tc), gx.py(0)); gx.ctx.lineTo(gx.px(p.tc), gx.py(10)); gx.ctx.stroke();
+      gx.ctx.restore();
+    }
+    gx.dot(t, x1(t), "#2563eb", 5);
+    gx.dot(t, x2(t), "#dc2626", 5);
+
+    // 運動量棒グラフ(衝突前後)
+    const BW = bar.width, BH = bar.height, mid = BH / 2 - 10;
+    bctx.clearRect(0, 0, BW, BH);
+    const P0 = p.m1 * p.v1 + p.m2 * p.v2;
+    const vals = [
+      { n: "m₁v₁", v: p.m1 * p.v1, c: "#2563eb", g: 0 },
+      { n: "m₂v₂", v: p.m2 * p.v2, c: "#dc2626", g: 0 },
+      { n: "合計", v: P0, c: "#059669", g: 0 },
+      { n: "m₁v₁′", v: p.m1 * p.v1p, c: "#2563eb", g: 1 },
+      { n: "m₂v₂′", v: p.m2 * p.v2p, c: "#dc2626", g: 1 },
+      { n: "合計", v: P0, c: "#059669", g: 1 },
+    ];
+    const maxAbs = Math.max(...vals.map(b => Math.abs(b.v)), 1) * 1.2;
+    bctx.strokeStyle = "#d1d5db";
+    bctx.beginPath(); bctx.moveTo(10, mid); bctx.lineTo(BW - 10, mid); bctx.stroke();
+    vals.forEach((b, i) => {
+      const x0 = 30 + i * (BW - 60) / 6 + b.g * 14, bw = (BW - 60) / 6 - 22;
+      const bh = b.v / maxAbs * (mid - 30);
+      bctx.fillStyle = b.c;
+      bctx.fillRect(x0, bh >= 0 ? mid - bh : mid, bw, Math.abs(bh));
+      bctx.fillStyle = "#374151"; bctx.font = "11px sans-serif"; bctx.textAlign = "center";
+      bctx.fillText(b.n, x0 + bw / 2, BH - 24);
+      bctx.fillText(fmt(b.v), x0 + bw / 2, bh >= 0 ? mid - bh - 6 : mid + Math.abs(bh) + 12);
+    });
+    bctx.fillStyle = "#6b7280"; bctx.font = "12px sans-serif";
+    bctx.fillText("── 衝突前 ──", 30 + (BW - 60) / 4, BH - 6);
+    bctx.fillText("── 衝突後 ──", 30 + (BW - 60) * 3 / 4, BH - 6);
+
+    const Kb = 0.5 * p.m1 * p.v1 ** 2 + 0.5 * p.m2 * p.v2 ** 2;
+    const Ka = 0.5 * p.m1 * p.v1p ** 2 + 0.5 * p.m2 * p.v2p ** 2;
+    $("mom-formula").innerHTML = isFinite(p.tc)
+      ? `m₁v₁ + m₂v₂ = <span class="lit">${fmt(p.m1)}</span> × ${fmt(p.v1)} + <span class="lit">${fmt(p.m2)}</span> × ${fmt(p.v2)} = <b>${fmt(P0)} kg·m/s</b>(衝突後も同じ)` +
+        `<br>衝突後:v₁′ = <b>${fmt(p.v1p, 2)} m/s</b>, v₂′ = <b>${fmt(p.v2p, 2)} m/s</b>  ` +
+        `(e = <span class="lit">${fmt(p.e, 2)}</span>)  運動エネルギー:${fmt(Kb)} J → <b>${fmt(Ka)} J</b>${p.e >= 0.999 ? "(弾性衝突なので保存)" : "(熱などに変わり減少)"}`
+      : `v₁ ≦ v₂ のため2球は近づかず、衝突しません。v₁ を大きくするか v₂ を小さくしてください。`;
+  };
+  modules["p-mom"] = mod;
+})();
+
+/* ---------- 8. 定常波 ---------- */
+(() => {
+  const mod = { t: 0, playing: true };
+  const ctrl = $("stand-controls");
+  const selBlock = document.createElement("div");
+  selBlock.className = "slider-block";
+  selBlock.innerHTML = `<label><span>振動するもの</span></label>`;
+  const sel = document.createElement("select");
+  [["string", "弦(両端固定)"], ["open", "開管(両端が開いた気柱)"], ["closed", "閉管(片端が閉じた気柱)"]].forEach(([v, n]) => {
+    const o = document.createElement("option"); o.value = v; o.textContent = n; sel.appendChild(o);
+  });
+  selBlock.appendChild(sel);
+  ctrl.appendChild(selBlock);
+  const ns = makeSlider(ctrl, { label: "何番目の振動か n", unit: "", min: 1, max: 5, step: 1, value: 2, digits: 0 });
+  const Ls = makeSlider(ctrl, { label: "長さ L", unit: "m", min: 0.5, max: 2, step: 0.1, value: 1 });
+  const vs = makeSlider(ctrl, { label: "波の速さ v(弦を伝わる速さ/音速)", unit: "m/s", min: 50, max: 400, step: 10, value: 340, digits: 0 });
+  makeControls(ctrl, mod);
+
+  const sim = $("stand-sim"), sctx = sim.getContext("2d");
+  mod.step = dt => { mod.t = (mod.t + dt) % (1 / 0.9); };
+  mod.render = () => {
+    const mode = sel.value, n = ns.get(), L = Ls.get(), v = vs.get();
+    let lam, harm, shape, nodes = [];
+    if (mode === "string") {
+      lam = 2 * L / n; harm = n;
+      shape = x => Math.sin(n * Math.PI * x / L);
+      for (let m = 0; m <= n; m++) nodes.push(m * L / n);
+    } else if (mode === "open") {
+      lam = 2 * L / n; harm = n;
+      shape = x => Math.cos(n * Math.PI * x / L);
+      for (let m = 0; m < n; m++) nodes.push((2 * m + 1) * L / (2 * n));
+    } else {
+      lam = 4 * L / (2 * n - 1); harm = 2 * n - 1;
+      shape = x => Math.sin((2 * n - 1) * Math.PI * x / (2 * L));
+      for (let m = 0; m < n; m++) nodes.push(2 * m * L / (2 * n - 1));
+    }
+    const f = v / lam;
+
+    const W = sim.width, H = sim.height, mid = H / 2;
+    sctx.clearRect(0, 0, W, H);
+    const X0 = 60, X1 = W - 60, A = 70;
+    const px = x => X0 + x / L * (X1 - X0);
+    // 境界の描画
+    sctx.strokeStyle = "#6b7280"; sctx.lineWidth = 3;
+    if (mode === "string") {
+      sctx.fillStyle = "#6b7280";
+      sctx.fillRect(X0 - 8, mid - 55, 8, 110);
+      sctx.fillRect(X1, mid - 55, 8, 110);
+    } else {
+      sctx.beginPath();
+      sctx.moveTo(X0, mid - 85); sctx.lineTo(X1, mid - 85);
+      sctx.moveTo(X0, mid + 85); sctx.lineTo(X1, mid + 85);
+      sctx.stroke();
+      if (mode === "closed") { sctx.fillStyle = "#6b7280"; sctx.fillRect(X0 - 8, mid - 85, 8, 170); }
+    }
+    // 包絡線(振動の範囲)
+    sctx.strokeStyle = "#c7ccd6"; sctx.lineWidth = 1.5; sctx.setLineDash([5, 5]);
+    for (const sgn of [1, -1]) {
+      sctx.beginPath();
+      for (let i = 0; i <= 200; i++) {
+        const x = L * i / 200;
+        const y = mid - sgn * A * shape(x);
+        i === 0 ? sctx.moveTo(px(x), y) : sctx.lineTo(px(x), y);
+      }
+      sctx.stroke();
+    }
+    sctx.setLineDash([]);
+    // いまの波形
+    const osc = Math.cos(2 * Math.PI * 0.9 * mod.t);
+    sctx.strokeStyle = "#2563eb"; sctx.lineWidth = 3;
+    sctx.beginPath();
+    for (let i = 0; i <= 200; i++) {
+      const x = L * i / 200;
+      const y = mid - A * shape(x) * osc;
+      i === 0 ? sctx.moveTo(px(x), y) : sctx.lineTo(px(x), y);
+    }
+    sctx.stroke();
+    // 節と腹
+    sctx.font = "12px sans-serif"; sctx.textAlign = "center";
+    nodes.forEach((x, i) => {
+      sctx.fillStyle = "#dc2626";
+      sctx.beginPath(); sctx.arc(px(x), mid, 5, 0, Math.PI * 2); sctx.fill();
+      if (i === 0) sctx.fillText("節", px(x), mid + 22);
+    });
+    // 腹:隣り合う節の中間 + 端が腹の場合
+    const anti = [];
+    if (mode === "string") for (let m = 0; m < n; m++) anti.push((m + 0.5) * L / n);
+    if (mode === "open") for (let m = 0; m <= n; m++) anti.push(m * L / n);
+    if (mode === "closed") for (let m = 0; m < n; m++) anti.push((2 * m + 1) * L / (2 * n - 1));
+    anti.forEach((x, i) => {
+      sctx.strokeStyle = "#059669"; sctx.lineWidth = 2;
+      sctx.beginPath(); sctx.moveTo(px(x), mid - A - 8); sctx.lineTo(px(x), mid - A + 4); sctx.stroke();
+      if (i === 0) { sctx.fillStyle = "#059669"; sctx.fillText("腹", px(x), mid - A - 14); }
+    });
+
+    $("stand-formula").innerHTML =
+      (mode === "closed"
+        ? `λ = 4L/(2n−1) = 4 × <span class="lit">${fmt(L)}</span>/${2 * n - 1} = <b>${fmt(lam, 2)} m</b>(<b>${harm}倍振動</b>:閉管は奇数倍のみ)`
+        : `λ = 2L/n = 2 × <span class="lit">${fmt(L)}</span>/${n} = <b>${fmt(lam, 2)} m</b>(<b>${harm}倍振動</b>)`) +
+      `<br>f = v/λ = <span class="lit">${fmt(v, 0)}</span>/${fmt(lam, 2)} = <b>${fmt(f, 0)} Hz</b>`;
+  };
+  modules["p-stand"] = mod;
+})();
+
+/* ---------- 9. ドップラー効果 ---------- */
+(() => {
+  const mod = { t: 0, playing: true, tw: 12 };
+  const ctrl = $("dop-controls");
+  const vss = makeSlider(ctrl, { label: "音源の速さ v<sub>s</sub>", unit: "m/s", min: 0, max: 80, step: 2, value: 40, digits: 0 });
+  const fss = makeSlider(ctrl, { label: "音源の振動数 f", unit: "Hz", min: 200, max: 1000, step: 20, value: 500, digits: 0 });
+  makeControls(ctrl, mod);
+  const sim = $("dop-sim"), sctx = sim.getContext("2d");
+  const gg = makeGraph($("dop-graph"), { xlabel: "音源の速さ vs [m/s]", ylabel: "f′ [Hz]" });
+  const V = 340, kk = 0.26, TE = 0.5;
+
+  mod.step = dt => { mod.t = (mod.t + dt) % mod.tw; };
+  mod.render = () => {
+    const vs = vss.get(), f = fss.get(), t = mod.t;
+    const W = sim.width, H = sim.height, y0 = H / 2 + 12;
+    sctx.clearRect(0, 0, W, H);
+    const xs = tt => 140 + vs * kk * tt;
+    // 波面(等時間間隔で出た球面波)
+    for (let te = 0; te < t; te += TE) {
+      const r = (t - te) * V * kk;
+      if (r > 1000) continue;
+      sctx.strokeStyle = "rgba(37,99,235,.45)"; sctx.lineWidth = 1.5;
+      sctx.beginPath(); sctx.arc(xs(te), y0, r, 0, Math.PI * 2); sctx.stroke();
+    }
+    sctx.font = "12px sans-serif"; sctx.textAlign = "center";
+    // 観測者
+    sctx.fillStyle = "#059669";
+    sctx.beginPath(); sctx.arc(930, y0, 9, 0, Math.PI * 2); sctx.fill();
+    sctx.fillText("前方の観測者", 930, y0 - 18);
+    sctx.fillStyle = "#7c3aed";
+    sctx.beginPath(); sctx.arc(45, y0, 9, 0, Math.PI * 2); sctx.fill();
+    sctx.fillText("後方", 45, y0 - 18);
+    // 音源
+    const sx = xs(t);
+    arrow(sctx, sx, y0, sx + 45, y0, "#dc2626");
+    sctx.fillStyle = "#dc2626";
+    sctx.beginPath(); sctx.arc(sx, y0, 8, 0, Math.PI * 2); sctx.fill();
+    sctx.fillText(`音源(${fmt(vs, 0)} m/s で移動)`, sx, y0 + 28);
+
+    const ff = f * V / (V - vs), fb = f * V / (V + vs);
+    gg.setRange(0, 80, 0, f * V / (V - 80) * 1.12);
+    gg.clear();
+    gg.plot(u => f * V / (V - u), 0, 80, "#059669");
+    gg.plot(u => f * V / (V + u), 0, 80, "#7c3aed");
+    gg.dot(vs, ff, "#059669");
+    gg.dot(vs, fb, "#7c3aed");
+    gg.ctx.save();
+    gg.ctx.font = "12px sans-serif"; gg.ctx.textAlign = "left";
+    gg.ctx.fillStyle = "#059669"; gg.ctx.fillText("前方(近づく)→ 高く", 70, 30);
+    gg.ctx.fillStyle = "#7c3aed"; gg.ctx.fillText("後方(遠ざかる)→ 低く", 70, 48);
+    gg.ctx.restore();
+
+    $("dop-formula").innerHTML =
+      `前方:f′ = fV/(V − v<sub>s</sub>) = <span class="lit">${fmt(f, 0)}</span> × 340/(340 − <span class="lit">${fmt(vs, 0)}</span>) = <b>${fmt(ff, 0)} Hz</b>(高く聞こえる)` +
+      `<br>後方:f′ = fV/(V + v<sub>s</sub>) = <span class="lit">${fmt(f, 0)}</span> × 340/(340 + <span class="lit">${fmt(vs, 0)}</span>) = <b>${fmt(fb, 0)} Hz</b>(低く聞こえる)`;
+  };
+  modules["p-doppler"] = mod;
+})();
+
+/* ---------- 10. レンズ ---------- */
+(() => {
+  const mod = { t: 0, playing: false };
+  const ctrl = $("lens-controls");
+  const fsl = makeSlider(ctrl, { label: "焦点距離 f", unit: "cm", min: 5, max: 30, step: 1, value: 10, digits: 0 });
+  const asl = makeSlider(ctrl, { label: "物体の距離 a", unit: "cm", min: 2, max: 60, step: 1, value: 30, digits: 0 });
+  const sim = $("lens-sim"), sctx = sim.getContext("2d");
+  const gg = makeGraph($("lens-graph"), { xlabel: "a [cm]", ylabel: "b [cm]" });
+  const line = (x0, y0, x1, y1, color, w = 2, dash = null) => {
+    sctx.save();
+    sctx.strokeStyle = color; sctx.lineWidth = w;
+    if (dash) sctx.setLineDash(dash);
+    sctx.beginPath(); sctx.moveTo(x0, y0); sctx.lineTo(x1, y1); sctx.stroke();
+    sctx.restore();
+  };
+  mod.step = () => {};
+  mod.render = () => {
+    const f = fsl.get(), a = asl.get();
+    const W = sim.width, H = sim.height, axis = H / 2 + 20, cx = W / 2;
+    const parallel = Math.abs(a - f) < 0.5;
+    const b = parallel ? Infinity : a * f / (a - f);
+    const bDraw = Math.min(isFinite(b) ? Math.abs(b) : 150, 150);
+    const s = Math.min(8, 440 / Math.max(a, bDraw, 2 * f));
+    const h = 70;
+    sctx.clearRect(0, 0, W, H);
+    // 光軸・レンズ・焦点
+    line(10, axis, W - 10, axis, "#c7ccd6", 1);
+    line(cx, axis - 130, cx, axis + 130, "#93b4f5", 3);
+    arrow(sctx, cx, axis - 110, cx, axis - 134, "#93b4f5");
+    arrow(sctx, cx, axis + 110, cx, axis + 134, "#93b4f5");
+    sctx.font = "12px sans-serif"; sctx.textAlign = "center"; sctx.fillStyle = "#374151";
+    for (const sgn of [-1, 1]) {
+      const fx = cx + sgn * f * s;
+      sctx.beginPath(); sctx.arc(fx, axis, 4, 0, Math.PI * 2); sctx.fill();
+      sctx.fillText("F", fx, axis + 20);
+    }
+    // 物体
+    const objX = cx - a * s, O = { x: objX, y: axis - h };
+    arrow(sctx, objX, axis, objX, axis - h, "#059669", 3);
+    sctx.fillStyle = "#059669"; sctx.fillText("物体", objX, axis - h - 12);
+
+    if (!parallel) {
+      const imgTip = { x: cx + b * s, y: axis + h * b / a };
+      const virtual = b < 0;
+      // 3本の光線のレンズ面での高さ
+      const F1x = cx - f * s;
+      const yLs = [
+        O.y,                                                  // ①平行光線
+        axis,                                                 // ②中心を直進
+        axis + (O.y - axis) * (cx - F1x) / (O.x - F1x),       // ③手前の焦点を通る光線
+      ];
+      const colors = ["#2563eb", "#dc2626", "#7c3aed"];
+      yLs.forEach((yl, i) => {
+        line(O.x, O.y, cx, yl, colors[i], 1.8);               // 入射光線
+        let dx = imgTip.x - cx, dy = imgTip.y - yl;
+        if (virtual) { dx = -dx; dy = -dy; }
+        const k2 = (W - 10 - cx) / dx;
+        line(cx, yl, W - 10, yl + dy * k2, colors[i], 1.8);   // 通過後の光線
+        if (virtual) line(cx, yl, imgTip.x, imgTip.y, colors[i], 1.2, [5, 5]); // 逆向きの延長線
+      });
+      // 像
+      if (Math.abs(b) <= 150) {
+        if (virtual) sctx.setLineDash([6, 5]);
+        arrow(sctx, imgTip.x, axis, imgTip.x, imgTip.y, "#ea580c", 3);
+        sctx.setLineDash([]);
+        sctx.fillStyle = "#ea580c";
+        sctx.fillText(virtual ? "虚像(正立)" : "実像(倒立)", imgTip.x, imgTip.y + (virtual ? -12 : 18));
+      } else {
+        sctx.fillStyle = "#6b7280"; sctx.textAlign = "left";
+        sctx.fillText("像は遠方にできます(a が f に近いため)", 20, 24);
+      }
+    } else {
+      // a = f:光は平行光線になる
+      const m2 = (axis - O.y) / (cx - O.x);
+      [O.y, axis].forEach((yl, i) => {
+        const c = ["#2563eb", "#dc2626"][i];
+        line(O.x, O.y, cx, yl, c, 1.8);
+        line(cx, yl, W - 10, yl + m2 * (W - 10 - cx), c, 1.8);
+      });
+      sctx.fillStyle = "#6b7280"; sctx.textAlign = "left";
+      sctx.fillText("a = f:通過後の光は平行光線になり、像はできません", 20, 24);
+    }
+
+    // b-a グラフ
+    gg.setRange(0, 60, -100, 150);
+    gg.clear();
+    gg.ctx.save();
+    gg.ctx.strokeStyle = "#9ca3af"; gg.ctx.setLineDash([4, 4]); gg.ctx.lineWidth = 1;
+    gg.ctx.beginPath();
+    gg.ctx.moveTo(gg.px(f), gg.py(-100)); gg.ctx.lineTo(gg.px(f), gg.py(150)); // 漸近線 a = f
+    gg.ctx.moveTo(gg.px(0), gg.py(f)); gg.ctx.lineTo(gg.px(60), gg.py(f));     // 漸近線 b = f
+    gg.ctx.stroke();
+    gg.ctx.restore();
+    gg.plot(x => x * f / (x - f), 1, f - 0.4, "#ea580c");   // 虚像の領域
+    gg.plot(x => x * f / (x - f), f + 0.4, 60, "#2563eb");  // 実像の領域
+    if (isFinite(b) && Math.abs(b) <= 150) gg.dot(a, b, "#dc2626");
+
+    $("lens-formula").innerHTML = parallel
+      ? `1/b = 1/f − 1/a = 1/<span class="lit">${fmt(f, 0)}</span> − 1/<span class="lit">${fmt(a, 0)}</span> = 0 → b = ∞(平行光線となり像はできない)`
+      : `1/a + 1/b = 1/f → b = af/(a−f) = <span class="lit">${fmt(a, 0)}</span> × <span class="lit">${fmt(f, 0)}</span>/(<span class="lit">${fmt(a, 0)}</span> − <span class="lit">${fmt(f, 0)}</span>) = <b>${fmt(b)} cm</b>` +
+        `<br>倍率 |b|/a = ${fmt(Math.abs(b))}/${fmt(a, 0)} = <b>${fmt(Math.abs(b) / a, 2)} 倍</b>の` +
+        (b > 0 ? `<b>倒立実像</b>(レンズの後方 ${fmt(b)} cm)` : `<b>正立虚像</b>(レンズの前方 ${fmt(-b)} cm、虫めがねの原理)`);
+  };
+  modules["p-lens"] = mod;
+})();
+
+/* ---------- 11. 熱量の保存 ---------- */
+(() => {
+  const mod = { t: 0, playing: true, tw: 12 };
+  const ctrl = $("heat-controls");
+  const rst = () => { mod.t = 0; };
+  const m1s = makeSlider(ctrl, { label: "金属の質量 m₁", unit: "g", min: 50, max: 500, step: 10, value: 200, digits: 0, onchange: rst });
+  const c1s = makeSlider(ctrl, { label: "金属の比熱 c₁", unit: "J/(g·K)", min: 0.2, max: 2, step: 0.05, value: 0.45, digits: 2, onchange: rst });
+  const t1s = makeSlider(ctrl, { label: "金属の温度 t₁", unit: "℃", min: 40, max: 100, step: 1, value: 80, digits: 0, onchange: rst });
+  const m2s = makeSlider(ctrl, { label: "水の質量 m₂", unit: "g", min: 50, max: 500, step: 10, value: 200, digits: 0, onchange: rst });
+  const t2s = makeSlider(ctrl, { label: "水の温度 t₂", unit: "℃", min: 0, max: 40, step: 1, value: 20, digits: 0, onchange: rst });
+  makeControls(ctrl, mod);
+  const C2 = 4.2, TAU = 2.5;
+  const sim = $("heat-sim"), sctx = sim.getContext("2d");
+  const gg = makeGraph($("heat-graph"), { xlabel: "時間 [s]", ylabel: "温度 [℃]" });
+  const tempColor = T => `hsl(${Math.max(0, 240 - 240 * T / 100)}, 72%, 52%)`;
+
+  mod.step = dt => { mod.t = (mod.t + dt) % mod.tw; };
+  mod.render = () => {
+    const m1 = m1s.get(), c1 = c1s.get(), t1 = t1s.get(), m2 = m2s.get(), t2 = t2s.get();
+    const T = (m1 * c1 * t1 + m2 * C2 * t2) / (m1 * c1 + m2 * C2);
+    const T1 = tt => T + (t1 - T) * Math.exp(-tt / TAU);
+    const T2 = tt => T + (t2 - T) * Math.exp(-tt / TAU);
+    const t = mod.t;
+
+    // ビーカーの図
+    const W = sim.width, H = sim.height;
+    sctx.clearRect(0, 0, W, H);
+    sctx.strokeStyle = "#6b7280"; sctx.lineWidth = 3;
+    sctx.beginPath();
+    sctx.moveTo(40, 60); sctx.lineTo(40, H - 30); sctx.lineTo(W - 40, H - 30); sctx.lineTo(W - 40, 60);
+    sctx.stroke();
+    sctx.fillStyle = tempColor(T2(t));
+    sctx.globalAlpha = 0.55;
+    sctx.fillRect(43, 110, W - 86, H - 143);
+    sctx.globalAlpha = 1;
+    sctx.fillStyle = tempColor(T1(t));
+    sctx.fillRect(W / 2 - 35, H - 115, 70, 60);
+    sctx.strokeStyle = "#374151"; sctx.lineWidth = 1.5;
+    sctx.strokeRect(W / 2 - 35, H - 115, 70, 60);
+    sctx.fillStyle = "#1f2937"; sctx.font = "12px sans-serif"; sctx.textAlign = "center";
+    sctx.fillText(`金属 ${fmt(T1(t))} ℃`, W / 2, H - 82);
+    sctx.fillText(`水 ${fmt(T2(t))} ℃`, W / 2, 100);
+
+    // 温度-時間グラフ
+    gg.setRange(0, mod.tw, 0, 100);
+    gg.clear();
+    gg.plot(() => T, 0, mod.tw, "#059669", 2, [6, 4]);
+    gg.plot(T1, 0, mod.tw, "#ea580c");
+    gg.plot(T2, 0, mod.tw, "#2563eb");
+    gg.dot(t, T1(t), "#ea580c");
+    gg.dot(t, T2(t), "#2563eb");
+    gg.ctx.save();
+    gg.ctx.font = "12px sans-serif"; gg.ctx.textAlign = "left";
+    gg.ctx.fillStyle = "#ea580c"; gg.ctx.fillText("金属", 70, 30);
+    gg.ctx.fillStyle = "#2563eb"; gg.ctx.fillText("水", 70, 48);
+    gg.ctx.fillStyle = "#059669"; gg.ctx.fillText(`平衡温度 T = ${fmt(T)} ℃`, 70, 66);
+    gg.ctx.restore();
+
+    const Q = m1 * c1 * (t1 - T);
+    $("heat-formula").innerHTML =
+      `平衡温度 T = (m₁c₁t₁ + m₂c₂t₂)/(m₁c₁ + m₂c₂) = <b>${fmt(T)} ℃</b>(水の比熱 c₂ = 4.2)` +
+      `<br>金属が失った熱量 Q = m₁c₁(t₁ − T) = <span class="lit">${fmt(m1, 0)}</span> × <span class="lit">${fmt(c1, 2)}</span> × (${fmt(t1, 0)} − ${fmt(T)}) = <b>${fmt(Q, 0)} J</b>` +
+      ` = 水が得た熱量 m₂c₂(T − t₂) = <b>${fmt(m2 * C2 * (T - t2), 0)} J</b>`;
+  };
+  modules["p-heat"] = mod;
+})();
+
+/* ---------- 12. 電磁誘導 ---------- */
+(() => {
+  const mod = { t: 0, playing: true };
+  const ctrl = $("emi-controls");
+  const rst = () => { mod.t = 0; };
+  const Bs = makeSlider(ctrl, { label: "磁束密度 B", unit: "T", min: 0.1, max: 1, step: 0.05, value: 0.5, digits: 2, onchange: rst });
+  const vs = makeSlider(ctrl, { label: "導体棒の速さ v", unit: "m/s", min: 0.5, max: 5, step: 0.1, value: 2, onchange: rst });
+  const ls = makeSlider(ctrl, { label: "レール間隔 l", unit: "m", min: 0.2, max: 1, step: 0.05, value: 0.5, digits: 2, onchange: rst });
+  const Rs = makeSlider(ctrl, { label: "抵抗 R", unit: "Ω", min: 1, max: 10, step: 0.5, value: 2, onchange: rst });
+  makeControls(ctrl, mod);
+  const sim = $("emi-sim"), sctx = sim.getContext("2d");
+  const gphi = makeGraph($("emi-phi"), { xlabel: "t [s]", ylabel: "Φ [Wb]" });
+  const gv = makeGraph($("emi-v"), { xlabel: "t [s]", ylabel: "V [V]" });
+  const SC = 180, PXV = 130, XL = 90; // px/m, 棒のpx速度係数, 左端
+
+  const par = () => {
+    const B = Bs.get(), v = vs.get(), l = ls.get(), R = Rs.get();
+    return { B, v, l, R, tw: 760 / (v * PXV) };
+  };
+  mod.step = dt => { const { tw } = par(); mod.t = (mod.t + dt) % tw; };
+  mod.render = () => {
+    const { B, v, l, R, tw } = par();
+    const t = mod.t;
+    const W = sim.width, H = sim.height, cy = H / 2;
+    const half = l * SC / 2, y1 = cy - half, y2 = cy + half;
+    const xb = 140 + v * PXV * t;
+    sctx.clearRect(0, 0, W, H);
+    // 磁場(×印)
+    sctx.strokeStyle = `rgba(107,114,128,${0.25 + 0.6 * B})`;
+    sctx.lineWidth = 1.5;
+    for (let gx0 = 80; gx0 < W - 40; gx0 += 60) {
+      for (let gy0 = 40; gy0 < H - 30; gy0 += 55) {
+        sctx.beginPath();
+        sctx.moveTo(gx0 - 5, gy0 - 5); sctx.lineTo(gx0 + 5, gy0 + 5);
+        sctx.moveTo(gx0 + 5, gy0 - 5); sctx.lineTo(gx0 - 5, gy0 + 5);
+        sctx.stroke();
+      }
+    }
+    // 囲まれた面積(磁束の領域)
+    sctx.fillStyle = "rgba(37,99,235,.12)";
+    sctx.fillRect(XL, y1, xb - XL, y2 - y1);
+    // レール
+    sctx.strokeStyle = "#374151"; sctx.lineWidth = 3;
+    sctx.beginPath();
+    sctx.moveTo(XL, y1); sctx.lineTo(W - 30, y1);
+    sctx.moveTo(XL, y2); sctx.lineTo(W - 30, y2);
+    sctx.stroke();
+    // 左端の抵抗
+    sctx.strokeStyle = "#dc2626"; sctx.lineWidth = 2;
+    sctx.beginPath(); sctx.moveTo(XL, y1); sctx.lineTo(XL, cy - 22); sctx.stroke();
+    sctx.beginPath(); sctx.moveTo(XL, y2); sctx.lineTo(XL, cy + 22); sctx.stroke();
+    drawSpringV(sctx, XL, cy - 22, cy + 22);
+    sctx.fillStyle = "#dc2626"; sctx.font = "12px sans-serif"; sctx.textAlign = "right";
+    sctx.fillText(`R = ${fmt(R)} Ω`, XL - 12, cy + 4);
+    // 導体棒
+    sctx.strokeStyle = "#2563eb"; sctx.lineWidth = 7;
+    sctx.beginPath(); sctx.moveTo(xb, y1 - 8); sctx.lineTo(xb, y2 + 8); sctx.stroke();
+    arrow(sctx, xb + 10, cy, xb + 10 + v * 22, cy, "#059669", 3);
+    sctx.fillStyle = "#059669"; sctx.textAlign = "left";
+    sctx.fillText(`v = ${fmt(v)} m/s`, xb + 14, cy - 12);
+    // 誘導電流の向き(反時計回り:棒の中を上向き)
+    const I = v * B * l / R;
+    arrow(sctx, xb - 14, cy + 24, xb - 14, cy - 24, "#ea580c");
+    arrow(sctx, (XL + xb) / 2 + 24, y1 - 14, (XL + xb) / 2 - 24, y1 - 14, "#ea580c");
+    arrow(sctx, (XL + xb) / 2 - 24, y2 + 14, (XL + xb) / 2 + 24, y2 + 14, "#ea580c");
+    sctx.fillStyle = "#ea580c";
+    sctx.fillText(`誘導電流 I = ${fmt(I, 2)} A`, (XL + xb) / 2 - 40, y1 - 24);
+    // 棒が受ける力(運動を妨げる向き)
+    arrow(sctx, xb, y2 + 26, xb - I * B * l * 60 - 18, y2 + 26, "#dc2626");
+    sctx.fillStyle = "#dc2626";
+    sctx.fillText("F = IBl(運動を妨げる向き)", xb + 6, y2 + 30);
+    sctx.fillStyle = "#6b7280";
+    sctx.fillText("×印:紙面の裏向きの磁場 B = " + fmt(B, 2) + " T", 90, 22);
+
+    // グラフ
+    const xm = tt => (140 + v * PXV * tt - XL) / SC; // 面積の幅[m]
+    const phi = tt => B * l * xm(tt);
+    const Vemf = v * B * l;
+    gphi.setRange(0, tw, 0, phi(tw) * 1.15);
+    gphi.clear();
+    gphi.plot(phi, 0, tw, "#2563eb");
+    gphi.guide(t, phi(t), "#2563eb");
+    gphi.dot(t, phi(t), "#2563eb");
+    gv.setRange(0, tw, 0, Math.max(Vemf * 1.6, 0.2));
+    gv.clear();
+    gv.plot(() => Vemf, 0, tw, "#ea580c");
+    gv.dot(t, Vemf, "#ea580c");
+
+    $("emi-formula").innerHTML =
+      `V = vBl = <span class="lit">${fmt(v)}</span> × <span class="lit">${fmt(B, 2)}</span> × <span class="lit">${fmt(l, 2)}</span> = <b>${fmt(Vemf, 2)} V</b>` +
+      `(= Φ-tグラフの傾き ΔΦ/Δt)` +
+      `<br>I = V/R = ${fmt(Vemf, 2)}/<span class="lit">${fmt(R)}</span> = <b>${fmt(I, 2)} A</b>, ` +
+      `棒が受ける力 F = IBl = <b>${fmt(I * B * l, 3)} N</b>(レンツの法則:運動を妨げる向き)`;
+  };
+  // 縦向きの抵抗(ジグザグ)
+  function drawSpringV(ctx, x, y0, y1) {
+    ctx.beginPath();
+    ctx.moveTo(x, y0);
+    const N = 8;
+    for (let i = 1; i < N; i++) {
+      const y = y0 + (y1 - y0) * i / N;
+      ctx.lineTo(x + (i % 2 ? -8 : 8), y);
+    }
+    ctx.lineTo(x, y1);
+    ctx.stroke();
+  }
+  modules["p-emi"] = mod;
+})();
+
+/* ---------- 13. 確認クイズ ---------- */
+(() => {
+  const NQ = 10;
+  const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  // 数値問題:正解と誤答候補から重複しない4択を作る
+  function num(q, correct, alts, unit, expl, d = 1) {
+    const cs = fmt(correct, d) + " " + unit;
+    const set = [cs];
+    for (let alt of alts) {
+      let v = fmt(alt, d) + " " + unit, guard = 0;
+      while (set.includes(v) && guard++ < 20) {
+        alt += Math.max(1, Math.abs(correct) * 0.3);
+        v = fmt(alt, d) + " " + unit;
+      }
+      set.push(v);
+    }
+    const choices = shuffle(set.slice());
+    return { q, choices, ci: choices.indexOf(cs), expl };
+  }
+  const gens = [
+    () => { const v0 = ri(1, 5), a = ri(1, 4), t = ri(2, 5), v = v0 + a * t;
+      return num(`初速度 ${v0} m/s、加速度 ${a} m/s² の等加速度直線運動。${t} 秒後の速度は?`,
+        v, [v0 + a, (v0 + a) * t, v0 * t + a], "m/s", `v = v₀ + at = ${v0} + ${a} × ${t} = ${v} m/s`, 0); },
+    () => { const v0 = ri(1, 5), a = 2 * ri(1, 2), t = ri(2, 4), x = v0 * t + 0.5 * a * t * t;
+      return num(`初速度 ${v0} m/s、加速度 ${a} m/s² の等加速度直線運動。${t} 秒間に進む距離は?`,
+        x, [(v0 + a * t) * t, v0 * t + a * t * t, 0.5 * a * t * t], "m", `x = v₀t + ½at² = ${v0} × ${t} + ½ × ${a} × ${t}² = ${x} m`, 0); },
+    () => { const h = pick([5, 20, 45, 80]), v = Math.sqrt(20 * h);
+      return num(`高さ ${h} m から物体を静かに落とす。地面に着くときの速さは?(g = 10 m/s²)`,
+        v, [v / 2, v * 2, v + 15], "m/s", `力学的エネルギー保存より v = √(2gh) = √(2 × 10 × ${h}) = ${fmt(v, 0)} m/s`, 0); },
+    () => { const [m, k] = pick([[0.1, 10], [0.4, 10], [0.9, 10], [0.2, 5]]), T = 2 * Math.PI * Math.sqrt(m / k);
+      return num(`ばね定数 ${k} N/m のばねに質量 ${m} kg のおもりをつけた。単振動の周期は?`,
+        T, [T / 2, 2 * T, 2 * Math.PI * Math.sqrt(k / m)], "s", `T = 2π√(m/k) = 2π√(${m}/${k}) ≒ ${fmt(T, 2)} s。振幅には依らない(等時性)。`, 2); },
+    () => { const f = pick([2, 4, 5, 10]), L = pick([0.5, 2, 4]), v = f * L;
+      return num(`振動数 ${f} Hz、波長 ${L} m の波の速さは?`,
+        v, [f + L, 2 * v, v / 2], "m/s", `v = fλ = ${f} × ${L} = ${fmt(v, 1)} m/s`, 1); },
+    () => { const V = pick([6, 12]), R = pick([2, 3, 4]), I = V / R;
+      return num(`${R} Ω の抵抗に ${V} V の電圧を加えたときに流れる電流は?`,
+        I, [V * R, V - R, 2 * I], "A", `オームの法則より I = V/R = ${V}/${R} = ${fmt(I, 1)} A`, 1); },
+    () => { const I = pick([2, 5, 7]), P = 100 * I;
+      return num(`100 V の電源で ${I} A の電流が流れる電気器具の消費電力は?`,
+        P, [100 + I, P / 2, 2 * P], "W", `P = VI = 100 × ${I} = ${P} W`, 0); },
+    () => ({ q: "なめらかな水平な地面から同じ速さでボールを投げるとき、最も遠くまで届く投射角度は?(空気抵抗なし)",
+      choices: ["30°", "45°", "60°", "90°"], ci: 1,
+      expl: "水平到達距離 R = v₀²sin2θ/g は 2θ = 90°、すなわち θ = 45° のとき最大。「放物運動」タブで確かめてみよう。" }),
+    () => ({ q: "救急車が近づいてくるとき、サイレンの音はどう聞こえる?",
+      choices: ["高く聞こえる", "低く聞こえる", "変わらない", "大きくなるが高さは同じ"], ci: 0,
+      expl: "音源が近づくと前方では波面がつまって波長が短くなるので、振動数が大きく=高く聞こえる(ドップラー効果)。" }),
+    () => { const [vs2, f0, ans] = pick([[40, 600, 680], [20, 640, 680], [68, 400, 500]]);
+      return num(`振動数 ${f0} Hz の音源が速さ ${vs2} m/s で観測者に近づく。聞こえる振動数は?(音速 340 m/s)`,
+        ans, [f0 * 340 / (340 + vs2), f0, ans + 40], "Hz", `f′ = fV/(V − v_s) = ${f0} × 340/(340 − ${vs2}) = ${ans} Hz`, 0); },
+    () => { const [a, f, b] = pick([[30, 10, 15], [20, 10, 20], [15, 10, 30], [30, 15, 30]]);
+      return num(`焦点距離 ${f} cm の凸レンズの前方 ${a} cm に物体を置いた。像ができる位置はレンズの後方何 cm か?`,
+        b, [a - f, f, 2 * b], "cm", `1/a + 1/b = 1/f より b = af/(a−f) = ${a} × ${f}/(${a} − ${f}) = ${b} cm(倒立実像)`, 0); },
+    () => { const v = pick([2, 4]), l = pick([0.5, 1]), B = 0.5, V = v * B * l;
+      return num(`磁束密度 ${B} T の磁場の中で、長さ ${l} m の導体棒を磁場と垂直に速さ ${v} m/s で動かした。誘導起電力は?`,
+        V, [v + B + l, 2 * V, V / 2], "V", `V = vBl = ${v} × ${B} × ${l} = ${fmt(V, 2)} V`, 2); },
+    () => { const m = pick([100, 200]), dT = pick([5, 10, 20]), Q = 4.2 * m * dT;
+      return num(`${m} g の水の温度を ${dT} K 上げるのに必要な熱量は?(水の比熱 4.2 J/(g·K))`,
+        Q, [m * dT, Q / 2, 2 * Q], "J", `Q = mcΔT = ${m} × 4.2 × ${dT} = ${fmt(Q, 0)} J`, 0); },
+    () => { const [m1, v1, m2, v2, vp] = pick([[2, 6, 1, 0, 4], [1, 4, 3, 0, 1], [3, 4, 1, -4, 2]]);
+      return num(`質量 ${m1} kg・速度 ${v1} m/s の球が、質量 ${m2} kg・速度 ${v2} m/s の球と衝突して一体となった。衝突後の速度は?`,
+        vp, [(v1 + v2) / 2, v1 - v2, 2 * vp], "m/s", `運動量保存より v′ = (m₁v₁ + m₂v₂)/(m₁ + m₂) = (${m1 * v1} + ${m2 * v2})/${m1 + m2} = ${vp} m/s`, 1); },
+    () => { const L = pick([1, 2]), n = ri(1, 4), lam = 2 * L / n;
+      return num(`長さ ${L} m の弦に ${n} 倍振動(腹が ${n} 個)の定常波ができている。波長は?`,
+        lam, [L / n, L * n, 4 * L / n], "m", `弦の定常波は λ = 2L/n = 2 × ${L}/${n} = ${fmt(lam, 1)} m`, 1); },
+    () => { const m = pick([1, 2, 5]), h = pick([5, 10, 20]), U = 9.8 * m * h;
+      return num(`質量 ${m} kg の物体を高さ ${h} m まで持ち上げた。重力による位置エネルギーの増加は?(g = 9.8 m/s²)`,
+        U, [m * h, 10 * m * h, U / 2], "J", `U = mgh = ${m} × 9.8 × ${h} = ${fmt(U, 0)} J`, 0); },
+  ];
+
+  let order = [], idx = 0, score = 0, current = null, answered = false;
+  const qEl = $("quiz-q"), cEl = $("quiz-choices"), fbEl = $("quiz-fb"),
+        progEl = $("quiz-prog"), scoreEl = $("quiz-score"), nextBtn = $("quiz-next");
+
+  function start() {
+    order = shuffle(gens.slice()).slice(0, NQ);
+    idx = 0; score = 0;
+    show();
+  }
+  function show() {
+    fbEl.innerHTML = "";
+    nextBtn.style.display = "none";
+    scoreEl.textContent = `正解 ${score} 問`;
+    if (idx >= NQ) {
+      progEl.textContent = "終了";
+      qEl.innerHTML = `<b>結果:${NQ} 問中 ${score} 問正解!</b><br>` +
+        (score >= 9 ? "すばらしい!基本はばっちりです。" :
+         score >= 6 ? "よくできました。間違えた単元のタブで復習しましょう。" :
+         "解説を読んで、各タブのシミュレーションで確かめながら復習しましょう。");
+      cEl.innerHTML = "";
+      return;
+    }
+    progEl.textContent = `第 ${idx + 1} 問 / ${NQ}`;
+    current = order[idx]();
+    answered = false;
+    qEl.innerHTML = current.q;
+    cEl.innerHTML = "";
+    current.choices.forEach((c, i) => {
+      const b = document.createElement("button");
+      b.textContent = c;
+      b.addEventListener("click", () => answer(i, b));
+      cEl.appendChild(b);
+    });
+  }
+  function answer(i, btn) {
+    if (answered) return;
+    answered = true;
+    const btns = cEl.querySelectorAll("button");
+    btns.forEach(b => { b.disabled = true; });
+    btns[current.ci].classList.add("correct");
+    if (i === current.ci) {
+      score++;
+      fbEl.innerHTML = `<b style="color:var(--green)">正解!</b> ${current.expl}`;
+    } else {
+      btn.classList.add("wrong");
+      fbEl.innerHTML = `<b style="color:var(--red)">残念…</b> 正解は「${current.choices[current.ci]}」。${current.expl}`;
+    }
+    scoreEl.textContent = `正解 ${score} 問`;
+    nextBtn.style.display = "";
+    nextBtn.textContent = idx === NQ - 1 ? "結果を見る" : "次の問題へ";
+  }
+  nextBtn.addEventListener("click", () => { idx++; show(); });
+  $("quiz-restart").addEventListener("click", start);
+  start();
+})();
+
 /* ---------- タブとメインループ ---------- */
 const TABS = [
   ["p-home", "はじめに"],
   ["p-accel", "等加速度直線運動"],
   ["p-proj", "放物運動"],
   ["p-energy", "力学的エネルギー"],
+  ["p-mom", "運動量保存"],
   ["p-shm", "単振動"],
   ["p-wave", "波"],
+  ["p-stand", "定常波"],
+  ["p-doppler", "ドップラー効果"],
+  ["p-lens", "レンズ"],
+  ["p-heat", "熱量の保存"],
   ["p-ohm", "オームの法則"],
+  ["p-emi", "電磁誘導"],
+  ["p-quiz", "確認クイズ"],
 ];
 const nav = $("tabs");
 TABS.forEach(([id, name]) => {
