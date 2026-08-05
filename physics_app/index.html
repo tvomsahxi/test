@@ -197,6 +197,7 @@
         <tr><td>ドップラー効果</td><td>物理</td><td>音の伝わり方</td><td>f′ = fV/(V − v_s)</td></tr>
         <tr><td>レンズ</td><td>物理</td><td>光(レンズの作図)</td><td>1/a + 1/b = 1/f</td></tr>
         <tr><td>熱量の保存</td><td>物理基礎</td><td>熱</td><td>m₁c₁(t₁−T) = m₂c₂(T−t₂)</td></tr>
+        <tr><td>ベルヌーイの定理</td><td>物理(発展)</td><td>流体</td><td>A₁v₁ = A₂v₂,  P + ½ρv² = 一定</td></tr>
         <tr><td>オームの法則</td><td>物理基礎</td><td>電気</td><td>V = RI,  P = VI</td></tr>
         <tr><td>電磁誘導</td><td>物理</td><td>電磁誘導</td><td>V = vBl,  V = −ΔΦ/Δt</td></tr>
         <tr><td>確認クイズ</td><td>共通</td><td>全単元</td><td>数値がランダムに変わる計算・知識問題</td></tr>
@@ -423,6 +424,30 @@
       <div class="canvas-row">
         <div class="canvas-box" style="flex:0 1 260px;min-width:220px"><h3>実験のようす</h3><canvas id="heat-sim" width="260" height="300"></canvas></div>
         <div class="canvas-box"><h3>温度と時間の関係(緑の点線=平衡温度 T)</h3><canvas id="heat-graph" width="700" height="300"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 11.5 ベルヌーイの定理 ===== -->
+  <section class="panel" id="p-bern">
+    <div class="card">
+      <h2>ベルヌーイの定理(流体)<span class="unit-tag">物理(発展)</span></h2>
+      <p class="desc">水平な管を水が流れています。管が細いところでは、<b>連続の式 A₁v₁ = A₂v₂</b> により流れが速くなり、
+        <b>ベルヌーイの定理 P + ½ρv² = 一定</b> により<b>圧力が下がります</b>(上の液柱の高さ=圧力に注目)。
+        「速いところほど圧力が低い」— 飛行機の翼が浮く理由、霧吹きの原理です。高さが変わる場合は ρgh の項が加わります。</p>
+    </div>
+    <div class="card">
+      <div class="controls" id="bern-controls"></div>
+      <div class="formula" id="bern-formula"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-box" style="margin-bottom:12px">
+        <h3>ベンチュリ管(青い粒=水の流れ、縦の管=圧力計。色:青=高圧、赤=低圧)</h3>
+        <canvas id="bern-sim" width="1000" height="380"></canvas>
+      </div>
+      <div class="canvas-row">
+        <div class="canvas-box"><h3>管に沿った流速 v の変化</h3><canvas id="bern-v" width="480" height="280"></canvas></div>
+        <div class="canvas-box"><h3>管に沿った圧力 P の変化</h3><canvas id="bern-p" width="480" height="280"></canvas></div>
       </div>
     </div>
   </section>
@@ -1749,6 +1774,106 @@ let activeId = null;
   modules["p-emi"] = mod;
 })();
 
+/* ---------- 12.5 ベルヌーイの定理 ---------- */
+(() => {
+  const mod = { t: 0, playing: true };
+  const ctrl = $("bern-controls");
+  const A1s = makeSlider(ctrl, { label: "入口の断面積 A₁", unit: "cm²", min: 8, max: 20, step: 0.5, value: 16 });
+  const A2s = makeSlider(ctrl, { label: "くびれの断面積 A₂", unit: "cm²", min: 4, max: 20, step: 0.5, value: 8 });
+  const v1s = makeSlider(ctrl, { label: "入口の流速 v₁", unit: "m/s", min: 0.5, max: 2.5, step: 0.1, value: 1.5 });
+  makeControls(ctrl, mod);
+  const sim = $("bern-sim"), sctx = sim.getContext("2d");
+  const gv = makeGraph($("bern-v"), { xlabel: "管に沿った位置", ylabel: "v [m/s]" });
+  const gp = makeGraph($("bern-p"), { xlabel: "管に沿った位置", ylabel: "P [kPa]" });
+  const RHO = 1000, P1 = 100; // 水の密度 [kg/m³], 入口の圧力 [kPa]
+  const smoothS = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
+  // 管の断面積プロファイル(0..1 の位置)と局所流速
+  const Aof = x => {
+    const b = smoothS((x - 0.30) / 0.15) - smoothS((x - 0.62) / 0.15);
+    return A1s.get() + (A2s.get() - A1s.get()) * b;
+  };
+  const vof = x => A1s.get() * v1s.get() / Aof(x);
+  const Pof = x => P1 + 0.5 * RHO * (v1s.get() ** 2 - vof(x) ** 2) / 1000;
+  // 水の粒子
+  const parts = [];
+  for (let i = 0; i < 70; i++) parts.push({ s: Math.random(), yf: (Math.random() - 0.5) * 1.6 });
+  mod.step = dt => {
+    mod.t += dt;
+    for (const p of parts) {
+      p.s += vof(p.s) * dt / 8;
+      if (p.s > 1) { p.s -= 1; p.yf = (Math.random() - 0.5) * 1.6; }
+    }
+  };
+  mod.render = () => {
+    const A1 = A1s.get(), A2 = A2s.get(), v1 = v1s.get();
+    const v2 = A1 * v1 / A2;
+    const P2 = P1 + 0.5 * RHO * (v1 * v1 - v2 * v2) / 1000;
+    const W = sim.width, H = sim.height, cy = 250;
+    const X0 = 60, X1 = W - 60;
+    const px = x => X0 + x * (X1 - X0);
+    const half = x => Aof(x) * 4;
+    sctx.clearRect(0, 0, W, H);
+    // 圧力を色で(内側を細い縦帯で塗る)
+    for (let i = 0; i < 160; i++) {
+      const x = i / 160;
+      const norm = Math.max(0, Math.min(1, (Pof(x) - 15) / 95));
+      sctx.fillStyle = `hsla(${220 * norm}, 80%, 55%, .22)`;
+      sctx.fillRect(px(x), cy - half(x), (X1 - X0) / 160 + 1, half(x) * 2);
+    }
+    // 管の壁
+    sctx.strokeStyle = "#374151"; sctx.lineWidth = 3;
+    for (const sgn of [1, -1]) {
+      sctx.beginPath();
+      for (let i = 0; i <= 160; i++) {
+        const x = i / 160;
+        const y = cy + sgn * half(x);
+        i === 0 ? sctx.moveTo(px(x), y) : sctx.lineTo(px(x), y);
+      }
+      sctx.stroke();
+    }
+    // 水の粒子
+    sctx.fillStyle = "#2563eb";
+    for (const p of parts) {
+      sctx.beginPath();
+      sctx.arc(px(p.s), cy + p.yf * half(p.s) * 0.55, 4, 0, Math.PI * 2);
+      sctx.fill();
+    }
+    arrow(sctx, 8, cy, 52, cy, "#2563eb", 3);
+    // 圧力計(液柱)
+    const gauge = (x, label, P) => {
+      const gx = px(x), top = cy - half(x);
+      const tubeH = 132, colH = Math.max(4, P / 110 * tubeH);
+      sctx.strokeStyle = "#6b7280"; sctx.lineWidth = 2;
+      sctx.strokeRect(gx - 12, top - tubeH - 8, 24, tubeH);
+      sctx.fillStyle = "rgba(37,99,235,.65)";
+      sctx.fillRect(gx - 10, top - 8 - colH, 20, colH);
+      sctx.fillStyle = "#374151"; sctx.font = "12px sans-serif"; sctx.textAlign = "center";
+      sctx.fillText(`${label} = ${fmt(P)} kPa`, gx, top - tubeH - 14);
+    };
+    gauge(0.15, "P₁", P1);
+    gauge(0.53, "P₂", P2);
+    sctx.fillStyle = "#6b7280"; sctx.font = "12px sans-serif"; sctx.textAlign = "center";
+    sctx.fillText(`A₁ = ${fmt(A1)} cm²  v₁ = ${fmt(v1)} m/s`, px(0.15), cy + half(0.15) + 22);
+    sctx.fillText(`A₂ = ${fmt(A2)} cm²  v₂ = ${fmt(v2, 2)} m/s`, px(0.53), cy + half(0.53) + 40);
+
+    // v(x)・P(x) グラフ
+    const vmax = Math.max(v1, v2);
+    gv.setRange(0, 1, 0, vmax * 1.25);
+    gv.clear();
+    gv.plot(vof, 0, 1, "#059669");
+    gp.setRange(0, 1, 0, 120);
+    gp.clear();
+    gp.plot(Pof, 0, 1, "#dc2626");
+    gp.plot(() => P1, 0, 1, "#9ca3af", 1.5, [5, 4]);
+
+    $("bern-formula").innerHTML =
+      `連続の式:A₁v₁ = A₂v₂ → v₂ = A₁v₁/A₂ = <span class="lit">${fmt(A1)}</span> × <span class="lit">${fmt(v1)}</span>/<span class="lit">${fmt(A2)}</span> = <b>${fmt(v2, 2)} m/s</b>` +
+      `<br>ベルヌーイ:P₂ = P₁ + ½ρ(v₁² − v₂²) = 100 + ½ × 1000 × (${fmt(v1)}² − ${fmt(v2, 2)}²)/1000 = <b>${fmt(P2)} kPa</b>` +
+      (A2 < A1 ? "(細い → 速い → <b>低圧</b>)" : A2 > A1 ? "(太い → 遅い → <b>高圧</b>)" : "(同じ太さ → 変化なし)");
+  };
+  modules["p-bern"] = mod;
+})();
+
 /* ---------- 13. 確認クイズ ---------- */
 (() => {
   const NQ = 10;
@@ -1819,6 +1944,12 @@ let activeId = null;
     () => { const m = pick([1, 2, 5]), h = pick([5, 10, 20]), U = 9.8 * m * h;
       return num(`質量 ${m} kg の物体を高さ ${h} m まで持ち上げた。重力による位置エネルギーの増加は?(g = 9.8 m/s²)`,
         U, [m * h, 10 * m * h, U / 2], "J", `U = mgh = ${m} × 9.8 × ${h} = ${fmt(U, 0)} J`, 0); },
+    () => { const A1 = pick([10, 20]), r = pick([2, 5]), v1 = pick([1, 2]), v2 = v1 * r;
+      return num(`断面積 ${A1} cm² の管を速さ ${v1} m/s で流れる水が、断面積 ${A1 / r} cm² のくびれに入った。くびれでの流速は?`,
+        v2, [v1 / r, v1 + r, 2 * v2], "m/s", `連続の式 A₁v₁ = A₂v₂ より v₂ = ${A1} × ${v1}/${A1 / r} = ${v2} m/s`, 1); },
+    () => ({ q: "水平な管の中を水が流れている。管が細くなり流れが速くなった場所では、圧力はどうなる?",
+      choices: ["低くなる", "高くなる", "変わらない", "流れが止まる"], ci: 0,
+      expl: "ベルヌーイの定理 P + ½ρv² = 一定 より、速いところほど圧力は低い。飛行機の翼や霧吹きの原理。「ベルヌーイの定理」タブで確かめよう。" }),
   ];
 
   let order = [], idx = 0, score = 0, current = null, answered = false;
@@ -2424,6 +2555,7 @@ const TABS = [
   ["p-doppler", "ドップラー効果"],
   ["p-lens", "レンズ"],
   ["p-heat", "熱量の保存"],
+  ["p-bern", "ベルヌーイの定理"],
   ["p-ohm", "オームの法則"],
   ["p-emi", "電磁誘導"],
   ["p-quiz", "確認クイズ"],
