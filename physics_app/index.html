@@ -193,6 +193,7 @@
         <tr><td>単振動</td><td>物理</td><td>円運動と単振動</td><td>x = A sin ωt,  T = 2π√(m/k)</td></tr>
         <tr><td>波</td><td>物理基礎</td><td>波の性質</td><td>v = fλ,  y = A sin 2π(t/T − x/λ)</td></tr>
         <tr><td>運動量保存</td><td>物理</td><td>運動量の保存</td><td>m₁v₁ + m₂v₂ = m₁v₁′ + m₂v₂′</td></tr>
+        <tr><td>運動量とエネルギー</td><td>物理</td><td>力積と仕事・保存則の使い分け</td><td>FΔt = Δp,  Fx = ΔK</td></tr>
         <tr><td>定常波</td><td>物理基礎</td><td>音(弦・気柱の振動)</td><td>λ = 2L/n(弦・開管), 4L/(2n−1)(閉管)</td></tr>
         <tr><td>ドップラー効果</td><td>物理</td><td>音の伝わり方</td><td>f′ = fV/(V − v_s)</td></tr>
         <tr><td>レンズ</td><td>物理</td><td>光(レンズの作図)</td><td>1/a + 1/b = 1/f</td></tr>
@@ -350,6 +351,27 @@
         <div class="canvas-box"><h3>運動量の内訳(衝突前後)</h3><canvas id="mom-bar" width="480" height="300"></canvas></div>
       </div>
     </div>
+  </section>
+
+  <!-- ===== 7.5 運動量とエネルギーの違い ===== -->
+  <section class="panel" id="p-pvse">
+    <div class="card">
+      <h2>運動量保存とエネルギー保存のちがい<span class="unit-tag">物理</span></h2>
+      <p class="desc">どちらも「保存則」なのに、何がちがうの?— 混同しやすい2つの量を、3つの実験で比べます。
+        最大のちがいは、<b>運動量はベクトル(向き込み)で、衝突なら必ず保存される</b>こと、
+        <b>運動エネルギーはスカラー(向きなし)で、熱や音に形を変えられる</b>ことです。</p>
+      <table class="map">
+        <tr><th></th><th>運動量 p = mv</th><th>運動エネルギー K = ½mv²</th></tr>
+        <tr><td>量の性質</td><td><b>ベクトル</b>(向きがある。逆向きどうしは打ち消し合う)</td><td><b>スカラー</b>(向きがない。つねに0以上)</td></tr>
+        <tr><td>変化させるもの</td><td>力積 = 力 × <b>時間</b>(FΔt)</td><td>仕事 = 力 × <b>距離</b>(Fx)</td></tr>
+        <tr><td>衝突では</td><td>外力がなければ<b>必ず保存</b></td><td>e = 1(弾性衝突)のときだけ保存</td></tr>
+        <tr><td>行き先</td><td>消えない。相手に移るだけ</td><td>熱・音・変形に形を変えられる</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="controls" id="pvse-mode"></div>
+    </div>
+    <div class="card" id="pvse-body"></div>
   </section>
 
   <!-- ===== 8. 定常波 ===== -->
@@ -1329,6 +1351,268 @@ let activeId = null;
   modules["p-mom"] = mod;
 })();
 
+/* ---------- 7.5 運動量とエネルギーの違い ---------- */
+(() => {
+  const mod = { t: 0, playing: true, sub: null };
+  const ctrl = $("pvse-mode");
+  const selBlock = document.createElement("div");
+  selBlock.className = "slider-block";
+  selBlock.style.minWidth = "340px";
+  selBlock.innerHTML = `<label><span>実験を選ぶ</span></label>`;
+  const sel = document.createElement("select");
+  [["e1", "実験1:衝突で比べる — エネルギーはどこへ?"],
+   ["e2", "実験2:正面衝突 — 「合計ゼロ」の運動量"],
+   ["e3", "実験3:力積と仕事 — 押す時間と押す距離"]].forEach(([v, n]) => {
+    const o = document.createElement("option"); o.value = v; o.textContent = n; sel.appendChild(o);
+  });
+  selBlock.appendChild(sel);
+  ctrl.appendChild(selBlock);
+  makeControls(ctrl, mod);
+  const body = $("pvse-body");
+  const rst = () => { mod.t = 0; };
+
+  // 棒グラフ(負の値・積み上げ対応)。groups: {name, parts:[{v,c}], val?}
+  function bars(cv, groups, note) {
+    const ctx = cv.getContext("2d");
+    const W = cv.width, H = cv.height;
+    ctx.clearRect(0, 0, W, H);
+    const anyNeg = groups.some(g => g.parts.some(p => p.v < -1e-9));
+    const base = anyNeg ? H / 2 + 10 : H - 44;
+    const maxAbs = Math.max(...groups.map(g => Math.abs(g.parts.reduce((s, p) => s + p.v, 0))),
+                            ...groups.map(g => Math.max(...g.parts.map(p => Math.abs(p.v)))), 0.001) * 1.25;
+    const scaleH = (anyNeg ? H / 2 - 45 : H - 100) / maxAbs;
+    ctx.strokeStyle = "#d1d5db";
+    ctx.beginPath(); ctx.moveTo(14, base); ctx.lineTo(W - 14, base); ctx.stroke();
+    const n = groups.length, bw = Math.min(72, (W - 60) / n - 26);
+    groups.forEach((g, i) => {
+      const x0 = 30 + (i + 0.5) * (W - 60) / n - bw / 2;
+      let acc = 0;
+      g.parts.forEach(p => {
+        const h0 = acc * scaleH, h1 = (acc + p.v) * scaleH;
+        ctx.fillStyle = p.c;
+        ctx.fillRect(x0, base - Math.max(h0, h1), bw, Math.max(Math.abs(h1 - h0), p.v ? 1 : 0));
+        acc += p.v;
+      });
+      const tot = g.parts.reduce((s, p) => s + p.v, 0);
+      ctx.fillStyle = "#374151"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+      ctx.fillText(g.name, x0 + bw / 2, base + (anyNeg ? H / 2 - 24 : 24));
+      ctx.fillText(g.val !== undefined ? g.val : fmt(tot), x0 + bw / 2,
+        tot >= 0 ? base - tot * scaleH - 6 : base - tot * scaleH + 14);
+    });
+    if (note) {
+      ctx.fillStyle = note.c; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "center";
+      ctx.fillText(note.text, W / 2, 18);
+    }
+  }
+  // 数直線上の球
+  function ballTrack(sim, xmax, balls, caption) {
+    const sctx = sim.getContext("2d");
+    const W = sim.width, H = sim.height, gy = H - 22;
+    sctx.clearRect(0, 0, W, H);
+    sctx.strokeStyle = "#9ca3af"; sctx.lineWidth = 2;
+    sctx.beginPath(); sctx.moveTo(20, gy); sctx.lineTo(W - 20, gy); sctx.stroke();
+    const sx = X => 40 + X / xmax * (W - 80);
+    for (const b of balls) {
+      const pr = b.r / xmax * (W - 80);
+      arrow(sctx, sx(b.x), gy - pr * 2 - 16, sx(b.x) + b.v * 9, gy - pr * 2 - 16, b.c);
+      sctx.fillStyle = b.c;
+      sctx.beginPath(); sctx.arc(sx(b.x), gy - pr, pr, 0, Math.PI * 2); sctx.fill();
+      sctx.fillStyle = "#fff"; sctx.font = "11px sans-serif"; sctx.textAlign = "center";
+      sctx.fillText(b.label, sx(b.x), gy - pr + 4);
+    }
+    if (caption) {
+      sctx.fillStyle = "#6b7280"; sctx.font = "12px sans-serif"; sctx.textAlign = "left";
+      sctx.fillText(caption, 20, 18);
+    }
+  }
+
+  /* 実験1:追突。運動量はいつでも保存、エネルギーは e=1 だけ */
+  function e1(box) {
+    const c = addControls(box);
+    const m1s = makeSlider(c, { label: "追いかける球の質量 m₁", unit: "kg", min: 0.5, max: 4, step: 0.5, value: 2, onchange: rst });
+    const v1s = makeSlider(c, { label: "その速度 v₁", unit: "m/s", min: 1, max: 8, step: 0.5, value: 5, onchange: rst });
+    const m2s = makeSlider(c, { label: "前の球の質量 m₂(はじめ静止)", unit: "kg", min: 0.5, max: 4, step: 0.5, value: 1, onchange: rst });
+    const es = makeSlider(c, { label: "反発係数 e", unit: "", min: 0, max: 1, step: 0.05, value: 0.5, digits: 2, onchange: rst });
+    const info = addFormula(box);
+    const sim = addCanvas(box, 1000, 175, "衝突のようす");
+    const row = addRow(box);
+    const cvP = addCanvas(row, 480, 280, "運動量の合計(向き込みで足す)");
+    const cvK = addCanvas(row, 480, 280, "運動エネルギーの合計");
+    return { render(t0) {
+      const m1 = m1s.get(), v1 = v1s.get(), m2 = m2s.get(), e = es.get();
+      const x10 = 1.5, x20 = 6.5, r1 = 0.28 + 0.09 * m1, r2 = 0.28 + 0.09 * m2;
+      const tc = ((x20 - r2) - (x10 + r1)) / v1;
+      const v1p = (m1 - e * m2) * v1 / (m1 + m2);
+      const v2p = (1 + e) * m1 * v1 / (m1 + m2);
+      const tw = tc + 2.5;
+      const t = (t0 * 0.6) % tw;
+      const x1 = t < tc ? x10 + v1 * t : x10 + v1 * tc + v1p * (t - tc);
+      const x2 = t < tc ? x20 : x20 + v2p * (t - tc);
+      ballTrack(sim, 9, [
+        { x: x1, r: r1, v: t < tc ? v1 : v1p, c: "#2563eb", label: "m₁" },
+        { x: x2, r: r2, v: t < tc ? 0 : v2p, c: "#dc2626", label: "m₂" },
+      ], t < tc ? "衝突前" : "衝突後");
+      const P = m1 * v1;
+      const Kb = 0.5 * m1 * v1 * v1;
+      const Ka = 0.5 * m1 * v1p * v1p + 0.5 * m2 * v2p * v2p;
+      bars(cvP, [
+        { name: "衝突前(m₁のみ)", parts: [{ v: P, c: "#2563eb" }] },
+        { name: "衝突後(m₁+m₂)", parts: [{ v: m1 * v1p, c: "#2563eb" }, { v: m2 * v2p, c: "#dc2626" }] },
+      ], { text: "✓ どんな e でも保存", c: "#059669" });
+      bars(cvK, [
+        { name: "衝突前", parts: [{ v: Kb, c: "#059669" }] },
+        { name: "衝突後(橙=熱・音)", parts: [{ v: Ka, c: "#059669" }, { v: Kb - Ka, c: "#f59e0b" }], val: fmt(Ka) },
+      ], e >= 0.999 ? { text: "✓ e = 1 のときだけ保存", c: "#059669" } : { text: "✗ 減った分は熱・音へ", c: "#ea580c" });
+      info.innerHTML =
+        `運動量:m₁v₁ = <span class="lit">${fmt(m1)}</span> × <span class="lit">${fmt(v1)}</span> = <b>${fmt(P)} kg·m/s</b> → 衝突後 ${fmt(m1 * v1p)} + ${fmt(m2 * v2p)} = <b>${fmt(m1 * v1p + m2 * v2p)} kg·m/s</b>(✓ 保存)` +
+        `<br>運動エネルギー:${fmt(Kb)} J → <b>${fmt(Ka)} J</b>` +
+        (e >= 0.999 ? "(✓ 弾性衝突なので保存)" : `(✗ <b>${fmt(Kb - Ka)} J</b> が熱・音に変わった)`) +
+        ` — e を 1 にすると両方とも保存されます`;
+    } };
+  }
+
+  /* 実験2:対称な正面衝突。p合計は0、Kは打ち消し合わない */
+  function e2(box) {
+    const c = addControls(box);
+    const ms = makeSlider(c, { label: "2球の質量 m(同じ)", unit: "kg", min: 0.5, max: 3, step: 0.5, value: 1, onchange: rst });
+    const vs = makeSlider(c, { label: "2球の速さ v(逆向き)", unit: "m/s", min: 1, max: 6, step: 0.5, value: 4, onchange: rst });
+    const es = makeSlider(c, { label: "反発係数 e", unit: "", min: 0, max: 1, step: 0.05, value: 0, digits: 2, onchange: rst });
+    const info = addFormula(box);
+    const sim = addCanvas(box, 1000, 175, "正面衝突(e = 0 なら衝突後は両方静止)");
+    const row = addRow(box);
+    const cvP = addCanvas(row, 480, 280, "運動量(ベクトル:向き込み)");
+    const cvK = addCanvas(row, 480, 280, "運動エネルギー(スカラー:向きなし)");
+    return { render(t0) {
+      const m = ms.get(), v = vs.get(), e = es.get();
+      const r = 0.28 + 0.09 * m;
+      const tc = (6 - 2 * r) / (2 * v);
+      const tw = tc + 2.2;
+      const t = (t0 * 0.6) % tw;
+      const u1 = t < tc ? v : -e * v, u2 = t < tc ? -v : e * v;
+      const x1 = t < tc ? 2 + v * t : 2 + v * tc - e * v * (t - tc);
+      const x2 = t < tc ? 8 - v * t : 8 - v * tc + e * v * (t - tc);
+      ballTrack(sim, 10, [
+        { x: x1, r, v: u1, c: "#2563eb", label: "1" },
+        { x: x2, r, v: u2, c: "#dc2626", label: "2" },
+      ], t < tc ? "衝突前:同じ速さで逆向き" : (e < 0.01 ? "衝突後:両方静止!でも運動量は保存されている(0のまま)" : "衝突後"));
+      const p = m * v, K1 = 0.5 * m * v * v;
+      const after = t >= tc;
+      const Ka = e * e * (2 * K1);
+      bars(cvP, [
+        { name: "球1:+mv", parts: [{ v: after ? m * u1 : p, c: "#2563eb" }] },
+        { name: "球2:−mv", parts: [{ v: after ? m * u2 : -p, c: "#dc2626" }] },
+        { name: "合計", parts: [{ v: 0, c: "#059669" }] },
+      ], { text: "✓ 合計は前も後もゼロ(打ち消し合う)", c: "#059669" });
+      bars(cvK, [
+        { name: "球1", parts: [{ v: after ? 0.5 * m * u1 * u1 : K1, c: "#059669" }] },
+        { name: "球2", parts: [{ v: after ? 0.5 * m * u2 * u2 : K1, c: "#059669" }] },
+        { name: "合計 前", parts: [{ v: 2 * K1, c: "#059669" }] },
+        { name: "合計 後(橙=熱)", parts: [{ v: Ka, c: "#059669" }, { v: 2 * K1 - Ka, c: "#f59e0b" }], val: fmt(Ka) },
+      ], { text: "打ち消し合わずに足し算される", c: "#ea580c" });
+      info.innerHTML =
+        `運動量(ベクトル):(+${fmt(p)}) + (−${fmt(p)}) = <b>0 kg·m/s</b> — 動いているのに合計はゼロ!衝突後もゼロのまま(e = 0 で両方止まっても成立)` +
+        `<br>運動エネルギー(スカラー):${fmt(K1)} + ${fmt(K1)} = <b>${fmt(2 * K1)} J</b> — 向きが逆でも打ち消し合わない。` +
+        (e < 0.01 ? `衝突後は<b>全部が熱・音に</b>変わった(${fmt(2 * K1)} J → 0 J)` : `衝突後は ${fmt(Ka)} J 残る`);
+    } };
+  }
+
+  /* 実験3:同じ力で「同じ時間」押すか「同じ距離」押すか */
+  function e3(box) {
+    const c = addControls(box);
+    const mode = document.createElement("div");
+    mode.className = "slider-block";
+    mode.innerHTML = `<label><span>押し方</span></label>`;
+    const msel = document.createElement("select");
+    [["time", "同じ時間だけ押す(力積 FΔt で比較)"], ["dist", "同じ距離だけ押す(仕事 Fx で比較)"]].forEach(([v, n]) => {
+      const o = document.createElement("option"); o.value = v; o.textContent = n; msel.appendChild(o);
+    });
+    msel.addEventListener("change", rst);
+    mode.appendChild(msel);
+    c.appendChild(mode);
+    const m2s = makeSlider(c, { label: "重い台車の質量 m₂(軽い台車は 1 kg)", unit: "kg", min: 1.5, max: 4, step: 0.5, value: 2, onchange: rst });
+    const Fs = makeSlider(c, { label: "押す力 F(2台とも同じ)", unit: "N", min: 1, max: 5, step: 0.5, value: 2, onchange: rst });
+    const info = addFormula(box);
+    const sim = addCanvas(box, 1000, 230, "同じ力で2台の台車を押す(矢印=押している間の力)");
+    const row = addRow(box);
+    const cvP = addCanvas(row, 480, 280, "運動量 p = mv");
+    const cvK = addCanvas(row, 480, 280, "運動エネルギー K = ½mv²");
+    const T0 = 1.5, X0 = 3, XMAX = 16;
+    return { render(t0) {
+      const m2 = m2s.get(), F = Fs.get(), timeMode = msel.value === "time";
+      const carts = [
+        { m: 1, c: "#2563eb", name: "軽い台車(1 kg)" },
+        { m: m2, c: "#dc2626", name: `重い台車(${fmt(m2)} kg)` },
+      ];
+      for (const k of carts) {
+        k.a = F / k.m;
+        k.tp = timeMode ? T0 : Math.sqrt(2 * X0 / k.a);
+        k.vf = k.a * k.tp;
+        k.xp = 0.5 * k.a * k.tp * k.tp;
+      }
+      const tw = Math.max(carts[0].tp, carts[1].tp) + 1.3;
+      const t = t0 % tw;
+      for (const k of carts) {
+        k.pushing = t < k.tp;
+        k.v = k.pushing ? k.a * t : k.vf;
+        k.x = k.pushing ? 0.5 * k.a * t * t : k.xp + k.vf * (t - k.tp);
+      }
+      const sctx = sim.getContext("2d");
+      const W = sim.width, H = sim.height;
+      sctx.clearRect(0, 0, W, H);
+      const px = X => 60 + X / XMAX * (W - 120);
+      carts.forEach((k, i) => {
+        const ly = 70 + i * 95;
+        sctx.strokeStyle = "#d7dce6"; sctx.lineWidth = 2;
+        sctx.beginPath(); sctx.moveTo(30, ly + 18); sctx.lineTo(W - 30, ly + 18); sctx.stroke();
+        if (!timeMode) {
+          sctx.strokeStyle = "#9ca3af"; sctx.setLineDash([5, 4]);
+          sctx.beginPath(); sctx.moveTo(px(X0), ly - 34); sctx.lineTo(px(X0), ly + 18); sctx.stroke();
+          sctx.setLineDash([]);
+          if (i === 0) { sctx.fillStyle = "#6b7280"; sctx.font = "11px sans-serif"; sctx.textAlign = "center"; sctx.fillText("ここまで押す(x = 3 m)", px(X0), 22); }
+        }
+        const cw = 30 + 14 * k.m, ch = 28;
+        sctx.fillStyle = k.c;
+        sctx.fillRect(px(k.x) - cw / 2, ly + 18 - ch, cw, ch);
+        if (k.pushing) arrow(sctx, px(k.x) - cw / 2 - 8 - F * 12, ly + 4, px(k.x) - cw / 2 - 6, ly + 4, "#ea580c", 3);
+        sctx.fillStyle = "#374151"; sctx.font = "12px sans-serif"; sctx.textAlign = "left";
+        sctx.fillText(`${k.name}  v = ${fmt(k.v, 2)} m/s ${k.pushing ? "(押し中)" : ""}`, 34, ly - 24);
+      });
+      if (timeMode) {
+        sctx.fillStyle = "#6b7280"; sctx.font = "12px sans-serif"; sctx.textAlign = "left";
+        sctx.fillText(`押す時間:${fmt(Math.min(t, T0), 2)} / ${fmt(T0, 2)} 秒`, 34, 22);
+      }
+      const done = t >= Math.max(carts[0].tp, carts[1].tp);
+      const p1 = carts[0].m * carts[0].v, p2 = carts[1].m * carts[1].v;
+      const K1 = 0.5 * carts[0].m * carts[0].v ** 2, K2 = 0.5 * carts[1].m * carts[1].v ** 2;
+      bars(cvP, [
+        { name: "軽い台車", parts: [{ v: p1, c: "#2563eb" }] },
+        { name: "重い台車", parts: [{ v: p2, c: "#dc2626" }] },
+      ], done ? (timeMode ? { text: "✓ 同じ!(p = FΔt は質量によらない)", c: "#059669" } : { text: "重い方が大きい(p = √(2mK))", c: "#ea580c" }) : null);
+      bars(cvK, [
+        { name: "軽い台車", parts: [{ v: K1, c: "#2563eb" }] },
+        { name: "重い台車", parts: [{ v: K2, c: "#dc2626" }] },
+      ], done ? (timeMode ? { text: "軽い方が大きい(K = p²/2m)", c: "#ea580c" } : { text: "✓ 同じ!(K = Fx は質量によらない)", c: "#059669" }) : null);
+      info.innerHTML = timeMode
+        ? `力積 = FΔt = <span class="lit">${fmt(F)}</span> × ${fmt(T0, 1)} = <b>${fmt(F * T0)} kg·m/s</b> → 運動量はどちらも同じ` +
+          `<br>運動エネルギー K = p²/2m:軽い台車 <b>${fmt(0.5 * 1 * carts[0].vf ** 2)} J</b>、重い台車 <b>${fmt(0.5 * m2 * carts[1].vf ** 2)} J</b> — <b>時間で押すなら運動量、が対応する量</b>`
+        : `仕事 = Fx = <span class="lit">${fmt(F)}</span> × ${fmt(X0, 1)} = <b>${fmt(F * X0)} J</b> → 運動エネルギーはどちらも同じ` +
+          `<br>運動量 p = √(2mK):軽い台車 <b>${fmt(Math.sqrt(2 * 1 * F * X0))} kg·m/s</b>、重い台車 <b>${fmt(Math.sqrt(2 * m2 * F * X0))} kg·m/s</b> — <b>距離で押すなら運動エネルギー、が対応する量</b>`;
+    } };
+  }
+
+  const exps = { e1, e2, e3 };
+  function load() {
+    mod.t = 0;
+    body.innerHTML = "";
+    mod.sub = exps[sel.value](body);
+  }
+  sel.addEventListener("change", load);
+  mod.step = dt => { mod.t += dt; };
+  mod.render = () => { if (mod.sub) mod.sub.render(mod.t); };
+  load();
+  modules["p-pvse"] = mod;
+})();
+
 /* ---------- 8. 定常波 ---------- */
 (() => {
   const mod = { t: 0, playing: true };
@@ -1950,6 +2234,12 @@ let activeId = null;
     () => ({ q: "水平な管の中を水が流れている。管が細くなり流れが速くなった場所では、圧力はどうなる?",
       choices: ["低くなる", "高くなる", "変わらない", "流れが止まる"], ci: 0,
       expl: "ベルヌーイの定理 P + ½ρv² = 一定 より、速いところほど圧力は低い。飛行機の翼や霧吹きの原理。「ベルヌーイの定理」タブで確かめよう。" }),
+    () => ({ q: "同じ大きさの力で、軽い台車と重い台車を同じ時間だけ押した。押し終わったとき、2台で同じになっている量は?",
+      choices: ["運動量", "運動エネルギー", "速度", "どれも同じにならない"], ci: 0,
+      expl: "力積 FΔt = 運動量の変化。同じ力 × 同じ時間なら運動量は同じ。運動エネルギー K = p²/2m は軽い台車の方が大きい。「運動量とエネルギー」タブの実験3で確かめよう。" }),
+    () => ({ q: "同じ大きさの力で、軽い台車と重い台車を同じ距離だけ押した。押し終わったとき、2台で同じになっている量は?",
+      choices: ["運動エネルギー", "運動量", "速度", "どれも同じにならない"], ci: 0,
+      expl: "仕事 Fx = 運動エネルギーの変化。同じ力 × 同じ距離なら運動エネルギーは同じ。運動量 p = √(2mK) は重い台車の方が大きい。" }),
   ];
 
   let order = [], idx = 0, score = 0, current = null, answered = false;
@@ -2549,6 +2839,7 @@ const TABS = [
   ["p-proj", "放物運動"],
   ["p-energy", "力学的エネルギー"],
   ["p-mom", "運動量保存"],
+  ["p-pvse", "運動量とエネルギー"],
   ["p-shm", "単振動"],
   ["p-wave", "波"],
   ["p-stand", "定常波"],
