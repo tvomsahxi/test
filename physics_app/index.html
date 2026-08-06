@@ -203,6 +203,7 @@
         <tr><td>電磁誘導</td><td>物理</td><td>電磁誘導</td><td>V = vBl,  V = −ΔΦ/Δt</td></tr>
         <tr><td>確認クイズ</td><td>共通</td><td>全単元</td><td>数値がランダムに変わる計算・知識問題</td></tr>
         <tr><td>モルの計算</td><td>化学基礎</td><td>物質量と化学反応式</td><td>n = m/M,  N = nN<sub>A</sub>,  V = 22.4n</td></tr>
+        <tr><td>天文学の基礎</td><td>物理・地学</td><td>高校の各単元の天文への応用</td><td>ケプラーの法則,  m − M = 5log(d/10),  λ<sub>max</sub>T = 一定</td></tr>
         <tr><td>超ひも理論への道</td><td>発展・読み物</td><td>高校範囲外(最先端)</td><td>8章のストーリー+シミュレーションで基礎から案内</td></tr>
         <tr><td>繰り込みへの道</td><td>発展・読み物</td><td>高校範囲外(最先端)</td><td>8章のストーリー+シミュレーションで基礎から案内</td></tr>
       </table>
@@ -529,6 +530,18 @@
     <div class="card" id="mol-body"></div>
   </section>
 
+  <!-- ===== 13.7 天文学の基礎 ===== -->
+  <section class="panel" id="p-astro">
+    <div class="card">
+      <h2>天文学の基礎 — 高校物理から宇宙へ<span class="unit-tag">物理・地学</span></h2>
+      <p class="desc">望遠鏡で見えるのは「点」だけ。それなのに、天文学者はなぜ星の<b>距離・質量・温度・成分・速度</b>まで分かるのでしょう?
+        答えは、<b>すべて高校で習う物理の法則</b>を使っているからです。9章のレクチャーで、
+        「この単元が天文学のここで効く」という対応をたどりながら、実際に計算してみましょう。</p>
+    </div>
+    <div class="card"><div class="story-nav" id="astro-nav"></div></div>
+    <div class="card" id="astro-body"></div>
+  </section>
+
   <!-- ===== 14. 超ひも理論への道 ===== -->
   <section class="panel" id="p-string">
     <div class="card">
@@ -688,7 +701,7 @@ function makeSlider(container, { label, unit, min, max, step, value, digits = 1,
   show();
   block.append(lab, input);
   container.appendChild(block);
-  return { get: () => +input.value };
+  return { get: () => +input.value, set: v => { input.value = v; show(); } };
 }
 
 /* 再生/一時停止/リセットボタン */
@@ -2295,6 +2308,21 @@ let activeId = null;
     () => ({ q: "「1 mol」とは何個の粒子の集まりか?",
       choices: ["6.02×10²³ 個", "6.02×10¹⁰ 個", "1.6×10⁻¹⁹ 個", "1000 個"], ci: 0,
       expl: "アボガドロ定数 6.02×10²³ 個 = 1 mol。この数だけ集めると、原子量・分子量に g をつけた質量になる。「モルの計算」タブ第2章参照。" }),
+    () => { const a = pick([4, 9, 16]), T = Math.pow(a, 1.5);
+      return num(`ある惑星が太陽から ${a} AU の距離を公転している。公転周期は何年か?(ケプラーの第3法則)`,
+        T, [a, a * a, a / 2], "年", `T² = a³ より T = ${a}^1.5 = ${fmt(T, 0)} 年`, 0); },
+    () => { const p = pick([0.1, 0.2, 0.5]), d = 1 / p;
+      return num(`年周視差が ${p} 秒角の星までの距離は何 pc か?`,
+        d, [p, p * 10, d * 2], "pc", `d = 1/p = 1/${p} = ${fmt(d, 0)} pc(約 ${fmt(d * 3.26, 0)} 光年)`, 0); },
+    () => ({ q: "赤い星と青白い星、表面温度が高いのはどちら?",
+      choices: ["青白い星", "赤い星", "同じ", "明るさによる"], ci: 0,
+      expl: "ウィーンの変位則 λmax = 2.9×10⁻³/T より、高温ほど短い波長(青い光)が強くなる。赤い星は低温(約3000 K)、青白い星は高温(1万K以上)。「天文学の基礎」タブ第7章参照。" }),
+    () => ({ q: "遠くの銀河のスペクトル線が、実験室の波長より長い方(赤い方)にずれて見えるのはなぜ?",
+      choices: ["銀河が遠ざかっているから", "銀河が近づいているから", "銀河が赤く光っているから", "途中の星に吸収されるから"], ci: 0,
+      expl: "光のドップラー効果(赤方偏移)。Δλ/λ = v/c で遠ざかる速さが分かる。遠い銀河ほど速く遠ざかる(ハッブルの法則)ことが宇宙膨張の証拠になった。" }),
+    () => ({ q: "星が何十億年も光り続けられるエネルギー源は?",
+      choices: ["水素の核融合", "石炭などの燃焼", "重力による落下だけ", "電気抵抗による発熱"], ci: 0,
+      expl: "水素4個がヘリウム1個になる核融合で、質量の0.7%がE=mc²によりエネルギーに変わる。化学反応(燃焼)では数千年しかもたない。" }),
   ];
 
   let order = [], idx = 0, score = 0, current = null, answered = false;
@@ -2866,6 +2894,574 @@ let activeId = null;
   modules["p-mol"] = makeStory("mol", chapters);
 })();
 
+/* ---------- 13.7 天文学の基礎 ---------- */
+(() => {
+  const GRAV = 6.674e-11, CLIGHT = 2.998e8, SIGMA = 5.67e-8;
+  const MSUN = 1.989e30, RSUN = 6.96e8, LSUN = 3.85e26, TSUN = 5772;
+  const AU = 1.496e11, PC = 3.086e16, MEARTH = 5.972e24, REARTH = 6.371e6;
+  const YEAR = 3.156e7;
+
+  /* 黒体の色(温度→RGB近似) */
+  function bbColor(T) {
+    const t = Math.max(1000, Math.min(40000, T)) / 100;
+    let r, g, b;
+    r = t <= 66 ? 255 : 329.7 * Math.pow(t - 60, -0.1332);
+    g = t <= 66 ? 99.47 * Math.log(t) - 161.1 : 288.1 * Math.pow(t - 60, -0.0755);
+    b = t >= 66 ? 255 : t <= 19 ? 0 : 138.5 * Math.log(t - 10) - 305;
+    const cl = v => Math.max(0, Math.min(255, Math.round(v)));
+    return `rgb(${cl(r)},${cl(g)},${cl(b)})`;
+  }
+  /* 波長[nm]→色(可視光の近似) */
+  function wlColor(w) {
+    let r = 0, g = 0, b = 0;
+    if (w >= 380 && w < 440) { r = -(w - 440) / 60; b = 1; }
+    else if (w < 490) { g = (w - 440) / 50; b = 1; }
+    else if (w < 510) { g = 1; b = -(w - 510) / 20; }
+    else if (w < 580) { r = (w - 510) / 70; g = 1; }
+    else if (w < 645) { r = 1; g = -(w - 645) / 65; }
+    else if (w <= 780) { r = 1; }
+    let f = 1;
+    if (w < 420) f = 0.3 + 0.7 * (w - 380) / 40;
+    else if (w > 700) f = 0.3 + 0.7 * (780 - w) / 80;
+    const cl = v => Math.round(255 * Math.max(0, Math.min(1, v * f)));
+    return `rgb(${cl(r)},${cl(g)},${cl(b)})`;
+  }
+  /* ケプラー方程式 E − e sinE = M を解く */
+  function solveE(M, e) {
+    let E = M;
+    for (let i = 0; i < 8; i++) E -= (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+    return E;
+  }
+  const starField = (ctx, x0, y0, w, h, n, seed) => {
+    for (let i = 0; i < n; i++) {
+      const s = Math.sin((i + seed) * 91.7) * 43758.5;
+      const s2 = Math.sin((i + seed) * 47.3) * 12345.7;
+      const x = x0 + (s - Math.floor(s)) * w, y = y0 + (s2 - Math.floor(s2)) * h;
+      ctx.fillStyle = `rgba(255,255,255,${0.35 + 0.5 * (s - Math.floor(s))})`;
+      ctx.beginPath(); ctx.arc(x, y, 1 + 1.4 * (s2 - Math.floor(s2)), 0, Math.PI * 2); ctx.fill();
+    }
+  };
+
+  const chapters = [
+
+  { title: "重力とケプラーの法則 — 天体の動きの土台", short: "ケプラーの法則",
+    html: `<p>天文学のすべての出発点が、物理で習う<b>万有引力 F = GMm/r²</b> です。ここからケプラーの3法則が導かれます。</p>
+      <table class="map">
+        <tr><th>法則</th><th>内容</th><th>高校物理とのつながり</th></tr>
+        <tr><td>第1法則</td><td>惑星は太陽を<b>焦点</b>とする楕円軌道を描く</td><td>万有引力(逆2乗の力)の帰結</td></tr>
+        <tr><td>第2法則</td><td>面積速度が一定(近いところほど速い)</td><td><b>角運動量保存</b>。「運動量保存」の回転版</td></tr>
+        <tr><td>第3法則</td><td><b>T² ∝ a³</b>(周期の2乗は長半径の3乗に比例)</td><td>円運動の式 + 万有引力から導ける</td></tr>
+      </table>
+      <p>離心率 e を大きくすると軌道はつぶれた楕円になります。<b>塗った2つの扇形は「同じ時間」で通過する部分</b> — 面積が等しいことを確かめましょう(第2法則)。近日点で速く、遠日点で遅くなります。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const es = makeSlider(c, { label: "離心率 e(0 = 真円)", unit: "", min: 0, max: 0.8, step: 0.02, value: 0.5, digits: 2 });
+      const as = makeSlider(c, { label: "軌道長半径 a", unit: "AU", min: 0.4, max: 5, step: 0.1, value: 1 });
+      const info = addFormula(box);
+      const row = addRow(box);
+      const cv = addCanvas(row, 600, 360, "楕円軌道(★=太陽は焦点にある)");
+      const g = makeGraph(addCanvas(row, 380, 360, "第3法則:T² = a³"), { xlabel: "a [AU]", ylabel: "T [年]" });
+      const ctx = cv.getContext("2d");
+      return { render(t) {
+        const e = es.get(), aAU = as.get(), T = Math.pow(aAU, 1.5);
+        const W = cv.width, H = cv.height, cx = W / 2 + 60 * e, cy = H / 2;
+        const A = 145, B = A * Math.sqrt(1 - e * e);
+        ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H);
+        starField(ctx, 0, 0, W, H, 60, 3);
+        const pos = M => {
+          const E = solveE(M, e);
+          return [cx + A * (Math.cos(E) - e), cy + B * Math.sin(E)];
+        };
+        // 等時間で掃く2つの扇形(面積が等しい=第2法則)
+        const sector = (M0, col) => {
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.moveTo(cx - A * e, cy);
+          for (let i = 0; i <= 24; i++) {
+            const [x, y] = pos(M0 + 0.14 * 2 * Math.PI * i / 24);
+            ctx.lineTo(x, y);
+          }
+          ctx.closePath(); ctx.fill();
+        };
+        sector(-0.07 * 2 * Math.PI, "rgba(37,99,235,.45)");
+        sector(Math.PI - 0.07 * 2 * Math.PI, "rgba(220,38,38,.45)");
+        // 軌道
+        ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i <= 200; i++) {
+          const [x, y] = pos(2 * Math.PI * i / 200);
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.closePath(); ctx.stroke();
+        // 太陽(焦点)
+        const fx = cx - A * e;
+        ctx.fillStyle = "#fbbf24";
+        ctx.beginPath(); ctx.arc(fx, cy, 13, 0, Math.PI * 2); ctx.fill();
+        // 惑星
+        const M = (t / 6) % 1 * 2 * Math.PI;
+        const [px2, py2] = pos(M);
+        const E = solveE(M, e), r = 1 - e * Math.cos(E);
+        ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(fx, cy); ctx.lineTo(px2, py2); ctx.stroke();
+        ctx.fillStyle = "#60a5fa";
+        ctx.beginPath(); ctx.arc(px2, py2, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#e5e7eb"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+        ctx.fillText("青と赤の扇形は「同じ時間」で通過する部分(面積が等しい)", 14, 22);
+        ctx.fillText(`太陽からの距離 r = ${fmt(r * aAU, 2)} AU`, 14, H - 14);
+        g.setRange(0, 5, 0, 12);
+        g.clear();
+        g.plot(u => Math.pow(u, 1.5), 0, 5, "#2563eb");
+        g.guide(aAU, T, "#dc2626");
+        g.dot(aAU, T, "#dc2626");
+        info.innerHTML =
+          `第3法則:T² = a³ → T = a<sup>3/2</sup> = <span class="lit">${fmt(aAU)}</span><sup>1.5</sup> = <b>${fmt(T, 2)} 年</b>` +
+          `<br>近日点距離 = a(1−e) = <b>${fmt(aAU * (1 - e), 2)} AU</b>、遠日点距離 = a(1+e) = <b>${fmt(aAU * (1 + e), 2)} AU</b>` +
+          `(速さの比は ${fmt((1 + e) / (1 - e), 2)} 倍:近いほど速い)`;
+      } };
+    } },
+
+  { title: "円運動と宇宙速度 — 人工衛星が落ちない理由", short: "宇宙速度",
+    html: `<p>人工衛星は「落ちていない」のではなく、<b>落ち続けているのに地面に届かない</b>のです。物理で習った<b>円運動の式</b>を使えば、必要な速さが計算できます。</p>
+      <p>向心力 = 万有引力 とおくと、<b>mv²/r = GMm/r²</b> → <b>v = √(GM/r)</b>。質量 m が消えるので、<b>衛星の重さによらず速さは同じ</b>です。</p>
+      <p>地表すれすれ(r = 地球半径)なら v = 7.9 km/s(<b>第一宇宙速度</b>)。エネルギー保存から、無限遠まで逃げるには <b>v = √(2GM/r) = 11.2 km/s</b>(<b>第二宇宙速度=脱出速度</b>)が必要です。</p>
+      <p>スライダーで軌道半径を変えてみましょう。周期が24時間になる高度(静止衛星の軌道)も探せます。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const rs = makeSlider(c, { label: "軌道半径 r(地球半径の何倍)", unit: "倍", min: 1, max: 12, step: 0.1, value: 1, digits: 2 });
+      const info = addFormula(box);
+      const row = addRow(box);
+      const cv = addCanvas(row, 520, 330, "地球と人工衛星");
+      const g = makeGraph(addCanvas(row, 460, 330, "軌道半径と速さ・周期"), { xlabel: "r(地球半径の何倍)", ylabel: "v [km/s]" });
+      const ctx = cv.getContext("2d");
+      return { render(t) {
+        const k = rs.get(), r = k * REARTH;
+        const v = Math.sqrt(GRAV * MEARTH / r), vesc = Math.sqrt(2 * GRAV * MEARTH / r);
+        const T = 2 * Math.PI * r / v;
+        const W = cv.width, H = cv.height, cx = W / 2, cy = H / 2;
+        ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H);
+        starField(ctx, 0, 0, W, H, 50, 7);
+        const RE = 26, R = RE * k;
+        ctx.strokeStyle = "rgba(148,163,184,.55)"; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+        const grd = ctx.createRadialGradient(cx - 8, cy - 8, 3, cx, cy, RE);
+        grd.addColorStop(0, "#60a5fa"); grd.addColorStop(1, "#1d4ed8");
+        ctx.fillStyle = grd;
+        ctx.beginPath(); ctx.arc(cx, cy, RE, 0, Math.PI * 2); ctx.fill();
+        const a = 2 * Math.PI * ((t / (T / 5000)) % 1);
+        ctx.fillStyle = "#fbbf24";
+        ctx.beginPath(); ctx.arc(cx + R * Math.cos(a), cy + R * Math.sin(a), 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#e5e7eb"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+        ctx.fillText(`高度 ${fmt((r - REARTH) / 1000, 0)} km`, 14, 22);
+        ctx.fillText(`周期 ${fmt(T / 3600, 2)} 時間`, 14, 40);
+        if (Math.abs(T / 3600 - 23.93) < 0.6) {
+          ctx.fillStyle = "#4ade80"; ctx.fillText("★ 静止衛星の軌道(周期24時間)", 14, H - 14);
+        }
+        g.setRange(1, 12, 0, 9);
+        g.clear();
+        g.plot(u => Math.sqrt(GRAV * MEARTH / (u * REARTH)) / 1000, 1, 12, "#2563eb");
+        g.plot(u => Math.sqrt(2 * GRAV * MEARTH / (u * REARTH)) / 1000, 1, 12, "#dc2626");
+        g.dot(k, v / 1000, "#2563eb");
+        g.ctx.save();
+        g.ctx.font = "12px sans-serif"; g.ctx.textAlign = "left";
+        g.ctx.fillStyle = "#dc2626"; g.ctx.fillText("脱出速度 √(2GM/r)", g.px(3.4), g.py(8.2));
+        g.ctx.fillStyle = "#2563eb"; g.ctx.fillText("円軌道の速さ √(GM/r)", g.px(3.4), g.py(6.0));
+        g.ctx.restore();
+        info.innerHTML =
+          `v = √(GM/r) = √(6.67×10⁻¹¹ × 5.97×10²⁴ / ${sciH(r)}) = <b>${fmt(v / 1000, 2)} km/s</b>、周期 T = <b>${fmt(T / 3600, 2)} 時間</b>` +
+          `<br>脱出速度 v = √(2GM/r) = <b>${fmt(vesc / 1000, 2)} km/s</b>(円軌道の√2倍)。` +
+          `地表(r = 1倍)では 7.9 km/s と 11.2 km/s になります。`;
+      } };
+    } },
+
+  { title: "天体の重さをはかる — ケプラー第3法則の逆用", short: "天体の質量",
+    html: `<p>星に体重計は乗せられません。それでも質量が分かるのは、<b>まわりを回るものの動きを見る</b>からです。</p>
+      <p>円運動 + 万有引力から <b>M = 4π²a³/(GT²)</b>。太陽質量・AU・年を単位にすると、この式はとても簡単になります。</p>
+      <p style="font-size:16px"><b>M [太陽質量] = a³ [AU] ÷ T² [年]</b></p>
+      <p>地球は a = 1 AU、T = 1 年 → M = 1(太陽質量1個ぶん)。この方法で、天文学者は太陽・惑星・ブラックホール・銀河の質量まで測ってきました。<b>系外惑星</b>探しでも主役の式です。</p>
+      <p>プルダウンで実例を選ぶか、スライダーで自由に変えてみましょう。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const as = makeSlider(c, { label: "軌道長半径 a", unit: "AU", min: 0.05, max: 30, step: 0.05, value: 1, digits: 2 });
+      const Ts = makeSlider(c, { label: "公転周期 T", unit: "年", min: 0.02, max: 165, step: 0.02, value: 1, digits: 2 });
+      const presets = [
+        ["地球(太陽のまわり)", 1, 1],
+        ["木星(太陽のまわり)", 5.20, 11.86],
+        ["海王星(太陽のまわり)", 30.07, 164.8],
+        ["ホット・ジュピター(系外惑星)", 0.05, 0.011],
+      ];
+      const sel = addSelect(c, "実例を選ぶ", presets.map((p, i) => [i, p[0]]), () => {
+        as.set(presets[+sel.value][1]); Ts.set(presets[+sel.value][2]);
+      });
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 300, "中心の星と、そのまわりを回る天体");
+      const ctx = cv.getContext("2d");
+      return { render(t) {
+        const a = as.get(), T = Ts.get(), M = a * a * a / (T * T);
+        const W = cv.width, H = cv.height, cx = W / 2, cy = H / 2;
+        ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H);
+        starField(ctx, 0, 0, W, H, 70, 11);
+        const R = 40 + 85 * Math.min(1, Math.log10(a + 1) / Math.log10(31));
+        ctx.strokeStyle = "rgba(148,163,184,.5)"; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+        const sr = 10 + 16 * Math.min(1.5, Math.cbrt(Math.max(M, 0.05)));
+        const grd = ctx.createRadialGradient(cx, cy, 2, cx, cy, sr);
+        grd.addColorStop(0, "#fef3c7"); grd.addColorStop(1, "#f59e0b");
+        ctx.fillStyle = grd;
+        ctx.beginPath(); ctx.arc(cx, cy, sr, 0, Math.PI * 2); ctx.fill();
+        const ang = 2 * Math.PI * ((t / Math.max(2, Math.min(10, 2 + T / 12))) % 1);
+        ctx.fillStyle = "#60a5fa";
+        ctx.beginPath(); ctx.arc(cx + R * Math.cos(ang), cy + R * Math.sin(ang), 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#e5e7eb"; ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(`中心の星の質量 = ${fmt(M, 2)} 太陽質量`, cx, 32);
+        ctx.font = "12px sans-serif";
+        ctx.fillText(`a = ${fmt(a, 2)} AU、T = ${fmt(T, 2)} 年`, cx, H - 16);
+        info.innerHTML =
+          `M = a³/T² = <span class="lit">${fmt(a, 2)}</span>³ / <span class="lit">${fmt(T, 2)}</span>² = <b>${fmt(M, 2)} 太陽質量</b>` +
+          ` = ${sciH(M * MSUN)} kg` +
+          `<br>この式ひとつで、惑星をもつ恒星も、銀河中心のブラックホール(太陽の400万倍!)も同じように測れます。`;
+      } };
+    } },
+
+  { title: "明るさと距離 — 逆2乗の法則と等級", short: "明るさと等級",
+    html: `<p>同じ電球でも、遠ざかると暗く見えます。光は球状に広がるので、<b>明るさは距離の2乗に反比例</b>します(逆2乗の法則)。電場や重力とまったく同じ形の法則です。</p>
+      <p>天文学では明るさを<b>等級</b>で表します。ここが要注意で、<b>数が小さいほど明るい</b>、そして<b>5等級の差でちょうど100倍</b>(1等級差は約2.5倍)という決まりです。</p>
+      <p>星が本当はどれくらい明るいかを表すのが<b>絶対等級 M</b>(10 pc の距離に置いたときの明るさ)。実際に見える明るさが<b>見かけの等級 m</b> で、両者は次の式で結ばれます。</p>
+      <p style="font-size:16px"><b>m − M = 5 log₁₀(d/10)</b>(d は pc 単位)</p>
+      <p>この式は逆に使えます。<b>本当の明るさ M が分かれば、見かけの明るさ m から距離 d が求まる</b> — これが遠い天体までの距離を測る主力の方法です。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const ds = makeSlider(c, { label: "距離 d", unit: "pc", min: 1, max: 1000, step: 1, value: 10, digits: 0 });
+      const Ms = makeSlider(c, { label: "絶対等級 M(本当の明るさ)", unit: "等", min: -6, max: 10, step: 0.5, value: 4.8, digits: 1 });
+      const info = addFormula(box);
+      const row = addRow(box);
+      const cv = addCanvas(row, 520, 300, "見え方(明るさは距離の2乗に反比例)");
+      const g = makeGraph(addCanvas(row, 460, 300, "距離と見かけの等級"), { xlabel: "距離 d [pc]", ylabel: "見かけの等級 m" });
+      const ctx = cv.getContext("2d");
+      return { render(t) {
+        const d = ds.get(), Mab = Ms.get();
+        const m = Mab + 5 * Math.log10(d / 10);
+        const flux = Math.pow(10, -0.4 * (m - 6));
+        const W = cv.width, H = cv.height;
+        ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H);
+        starField(ctx, 0, 0, W, H, 60, 5);
+        const cx = W / 2, cy = H / 2 - 10;
+        const rad = Math.max(2, Math.min(46, 9 * Math.pow(flux, 0.22)));
+        const al = Math.max(0.06, Math.min(1, Math.pow(flux, 0.3)));
+        const grd = ctx.createRadialGradient(cx, cy, 0.5, cx, cy, rad * 2.6);
+        grd.addColorStop(0, `rgba(255,255,240,${al})`);
+        grd.addColorStop(0.25, `rgba(255,244,200,${al * 0.6})`);
+        grd.addColorStop(1, "rgba(255,244,200,0)");
+        ctx.fillStyle = grd;
+        ctx.beginPath(); ctx.arc(cx, cy, rad * 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(255,255,255,${al})`;
+        ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#e5e7eb"; ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(`${fmt(d, 0)} pc(${fmt(d * 3.26, 0)} 光年)先にある星`, cx, H - 34);
+        ctx.font = "12px sans-serif"; ctx.fillStyle = "#9ca3af";
+        ctx.fillText(m < 6 ? "肉眼で見える明るさ(6等より明るい)" : "肉眼では見えない(6等より暗い)", cx, H - 14);
+        g.setRange(1, 1000, -5, 20);
+        g.clear();
+        g.plot(u => Mab + 5 * Math.log10(u / 10), 1, 1000, "#2563eb");
+        g.plot(() => 6, 1, 1000, "#059669", 1.5, [5, 4]);
+        g.guide(d, m, "#dc2626");
+        g.dot(d, m, "#dc2626");
+        g.ctx.save();
+        g.ctx.fillStyle = "#059669"; g.ctx.font = "11px sans-serif"; g.ctx.textAlign = "left";
+        g.ctx.fillText("肉眼の限界(6等)", g.px(430), g.py(6) - 6);
+        g.ctx.restore();
+        info.innerHTML =
+          `m = M + 5log₁₀(d/10) = <span class="lit">${fmt(Mab, 1)}</span> + 5log₁₀(<span class="lit">${fmt(d, 0)}</span>/10) = <b>${fmt(m, 2)} 等</b>` +
+          `<br>10 pc に置いたときより ${fmt(Math.pow(d / 10, 2), 1)} 倍暗い(逆2乗の法則)。` +
+          `太陽を 10 pc に置くと 4.8 等 — 平凡な星のひとつにしか見えません。`;
+      } };
+    } },
+
+  { title: "距離のはしご — 年周視差と 1 パーセク", short: "距離をはかる",
+    html: `<p>天文学最大の難問は「距離」です。いちばん基本の方法は、指を立てて左右の目で交互に見ると位置がずれる、あの現象そのもの — <b>三角測量</b>です。</p>
+      <p>地球は1年かけて公転するので、半年ごとに観測すると視点が 2 AU 動きます。近い星ほど、遠くの星々に対して大きく揺れて見える。この揺れの半分の角度が<b>年周視差 p</b> です。</p>
+      <p style="font-size:16px"><b>d [pc] = 1 / p [秒角]</b></p>
+      <p><b>1 パーセク(pc)</b>とは「年周視差がちょうど1秒角になる距離」で、約 3.26 光年。1秒角は 1度の 1/3600 — 3 km 先の1円玉を見る角度です。それほど微小なので、肉眼では絶対に分かりません。</p>
+      <p>最も近い恒星プロキシマ・ケンタウリでも p = 0.77 秒角。スライダーを動かすと、遠い星ほど揺れが小さくなることが分かります(図の揺れは実際よりずっと誇張してあります)。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const ds = makeSlider(c, { label: "星までの距離 d", unit: "pc", min: 1, max: 100, step: 1, value: 1.3, digits: 1 });
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 340, "左:地球の公転(上から見た図) 右:空での星の見え方");
+      const ctx = cv.getContext("2d");
+      return { render(t) {
+        const d = ds.get(), p = 1 / d;
+        const W = cv.width, H = cv.height;
+        ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H);
+        const ang = 2 * Math.PI * ((t / 8) % 1);
+        // 左:公転
+        const cx = 190, cy = H / 2, R = 78;
+        ctx.strokeStyle = "rgba(148,163,184,.5)"; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = "#fbbf24";
+        ctx.beginPath(); ctx.arc(cx, cy, 12, 0, Math.PI * 2); ctx.fill();
+        const ex = cx + R * Math.cos(ang), ey = cy + R * Math.sin(ang);
+        ctx.fillStyle = "#60a5fa";
+        ctx.beginPath(); ctx.arc(ex, ey, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#e5e7eb"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("太陽", cx, cy + 30);
+        ctx.fillText("地球(1年で1周)", cx, cy + R + 30);
+        ctx.strokeStyle = "rgba(96,165,250,.55)"; ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(700, H / 2); ctx.stroke();
+        ctx.setLineDash([]);
+        // 右:空の見え方
+        const sx = 730, sy = H / 2;
+        starField(ctx, 480, 30, W - 500, H - 60, 45, 21);
+        const amp = Math.min(58, 58 / d * 1.3);
+        ctx.strokeStyle = "rgba(220,38,38,.45)"; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.ellipse(sx, sy, amp, amp * 0.34, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        const px2 = sx - amp * Math.cos(ang), py2 = sy - amp * 0.34 * Math.sin(ang);
+        ctx.fillStyle = "#fca5a5";
+        ctx.beginPath(); ctx.arc(px2, py2, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#fca5a5"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("この星の見かけの位置が1年かけて楕円を描く", sx, sy + 78);
+        ctx.fillStyle = "#e5e7eb";
+        ctx.fillText(`年周視差 p = ${fmt(p, 3)} 秒角`, sx, sy - 74);
+        ctx.textAlign = "left"; ctx.fillStyle = "#9ca3af"; ctx.font = "11px sans-serif";
+        ctx.fillText("※ 揺れの大きさは実際よりずっと誇張しています", 480, H - 12);
+        info.innerHTML =
+          `d = 1/p → p = 1/<span class="lit">${fmt(d, 1)}</span> = <b>${fmt(p, 3)} 秒角</b>` +
+          `(= ${fmt(p * 1000, 1)} ミリ秒角)。距離は <b>${fmt(d * 3.26, 1)} 光年</b>` +
+          `<br>ガイア衛星は 0.00002 秒角まで測定可能 → 数万 pc 先まで三角測量が届きます` +
+          `(それより遠くは第4章の等級を使用:距離のはしご)`;
+      } };
+    } },
+
+  { title: "ドップラー効果と赤方偏移 — 宇宙の膨張", short: "赤方偏移",
+    html: `<p>「ドップラー効果」タブで学んだ、救急車の音の変化。<b>光でも同じことが起こります</b>。近づく天体の光は波長が短く(青方偏移)、遠ざかる天体の光は波長が長く(<b>赤方偏移</b>)なります。</p>
+      <p style="font-size:16px"><b>Δλ/λ = v/c</b>(v は光速に比べて十分小さいとき)</p>
+      <p>ここで効いてくるのが、化学で学ぶ<b>スペクトル線</b>です。水素やナトリウムが吸収する波長は実験室で正確に分かっているので、<b>星のスペクトルで同じ線がどれだけずれているかを測れば、視線方向の速度が分かります</b>。</p>
+      <p>1929年、ハッブルは「遠い銀河ほど大きく赤方偏移している」ことを発見しました(<b>v = H₀d</b>)。これが<b>宇宙が膨張している</b>証拠です。スライダーで速度を上げて、スペクトル線が右(赤い方)へずれるのを見てください。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const vs = makeSlider(c, { label: "遠ざかる速さ v", unit: "km/s", min: 0, max: 30000, step: 100, value: 3000, digits: 0 });
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 330, "スペクトル(上:実験室での波長 下:観測された光)");
+      const ctx = cv.getContext("2d");
+      const LINES = [[434.0, "Hγ"], [486.1, "Hβ"], [589.0, "Na"], [656.3, "Hα"]];
+      return { render() {
+        const v = vs.get() * 1000, z = v / CLIGHT;
+        const W = cv.width, H = cv.height, x0 = 60, x1 = W - 60;
+        const wl2x = w => x0 + (w - 380) / (780 - 380) * (x1 - x0);
+        ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H);
+        const band = (y, h, shift, label) => {
+          for (let x = x0; x <= x1; x++) {
+            const w = 380 + (x - x0) / (x1 - x0) * 400;
+            ctx.fillStyle = wlColor(w);
+            ctx.fillRect(x, y, 1.5, h);
+          }
+          ctx.strokeStyle = "#111827"; ctx.lineWidth = 3;
+          LINES.forEach(([w0, nm]) => {
+            const w = w0 * (1 + shift);
+            if (w < 380 || w > 780) return;
+            ctx.beginPath(); ctx.moveTo(wl2x(w), y); ctx.lineTo(wl2x(w), y + h); ctx.stroke();
+            ctx.fillStyle = "#e5e7eb"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText(nm, wl2x(w), y - 6);
+          });
+          ctx.fillStyle = "#e5e7eb"; ctx.font = "13px sans-serif"; ctx.textAlign = "left";
+          ctx.fillText(label, x0, y + h + 20);
+        };
+        band(60, 60, 0, "実験室で測った波長(静止しているとき)");
+        band(190, 60, z, `観測された光(赤方偏移 z = ${fmt(z, 4)})`);
+        // ずれの矢印
+        LINES.forEach(([w0]) => {
+          const wa = wl2x(w0), wb = wl2x(w0 * (1 + z));
+          if (wb > x1) return;
+          ctx.strokeStyle = "rgba(248,113,113,.9)";
+          arrow(ctx, wa, 150, wb, 150, "#f87171", 2);
+        });
+        ctx.fillStyle = "#9ca3af"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("← 青(短波長)        波長 [nm]        赤(長波長) →", W / 2, H - 12);
+        const dMpc = vs.get() / 70;
+        info.innerHTML =
+          `Δλ/λ = v/c = <span class="lit">${fmt(vs.get(), 0)}</span>/300000 = <b>${fmt(z, 4)}</b>` +
+          ` → Hα線 656.3 nm は <b>${fmt(656.3 * (1 + z), 1)} nm</b> にずれて見えます(${fmt(656.3 * z, 1)} nm のずれ)` +
+          `<br>ハッブルの法則 v = H₀d(H₀ ≒ 70 km/s/Mpc)より、この銀河までの距離は <b>${fmt(dMpc, 0)} Mpc</b>` +
+          `(約 ${fmt(dMpc * 3.26, 0)} 百万光年)`;
+      } };
+    } },
+
+  { title: "星の色と温度 — 熱放射とHR図", short: "星の色と温度",
+    html: `<p>星の色は、その<b>表面温度</b>で決まります。熱い金属が赤 → オレンジ → 白と変わるのと同じ原理(<b>熱放射</b>)です。赤い星は低温、青白い星は高温 — <b>赤いほうが熱そう、は間違い</b>です。</p>
+      <table class="map">
+        <tr><th>法則</th><th>式</th><th>意味</th></tr>
+        <tr><td>ウィーンの変位則</td><td>λ<sub>max</sub> = 2.90×10⁻³ / T</td><td>高温ほど、いちばん強く出る光の波長が短い(青い)</td></tr>
+        <tr><td>シュテファン・ボルツマンの法則</td><td>L = 4πR²σT⁴</td><td>単位面積の放射は温度の<b>4乗</b>。2倍熱いと16倍明るい</td></tr>
+      </table>
+      <p>この2つを使うと、<b>色を見るだけで温度が分かり、温度と明るさから半径まで分かります</b>。</p>
+      <p>星の温度と明るさを点で打った図が<b>HR図</b>。多くの星は帯状の「主系列」に並びますが、半径を大きくすると点が上へ外れます — それが<b>赤色巨星</b>です。太陽もいつかそうなります。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const Ts = makeSlider(c, { label: "表面温度 T", unit: "K", min: 2500, max: 30000, step: 100, value: 5772, digits: 0 });
+      const Rs = makeSlider(c, { label: "半径 R(太陽の何倍)", unit: "倍", min: 0.1, max: 100, step: 0.1, value: 1, digits: 1 });
+      const info = addFormula(box);
+      const row = addRow(box);
+      const cv = addCanvas(row, 330, 320, "星の色");
+      const g1 = makeGraph(addCanvas(row, 330, 320, "熱放射のスペクトル"), { xlabel: "波長 [nm]", ylabel: "強さ" });
+      const g2 = makeGraph(addCanvas(row, 330, 320, "HR図(横軸は右へ行くほど低温)"), { xlabel: "温度 [K](逆向き)", ylabel: "log(L/L☉)" });
+      const ctx = cv.getContext("2d");
+      return { render(t) {
+        const T = Ts.get(), R = Rs.get();
+        const L = R * R * Math.pow(T / TSUN, 4);
+        const lmax = 2.898e-3 / T * 1e9;
+        const W = cv.width, H = cv.height, cx = W / 2, cy = H / 2;
+        ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H);
+        starField(ctx, 0, 0, W, H, 40, 13);
+        const col = bbColor(T);
+        const rad = 20 + 42 * Math.min(1, Math.log10(R + 1) / 2);
+        const grd = ctx.createRadialGradient(cx, cy, 1, cx, cy, rad * 2.2);
+        grd.addColorStop(0, col); grd.addColorStop(0.4, col); grd.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = grd;
+        ctx.beginPath(); ctx.arc(cx, cy, rad * 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#e5e7eb"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+        const cls = T > 25000 ? "O型(青)" : T > 11000 ? "B・A型(青白)" : T > 7500 ? "A型(白)" :
+                    T > 6000 ? "F型(黄白)" : T > 5000 ? "G型(黄・太陽と同じ)" : T > 3700 ? "K型(橙)" : "M型(赤)";
+        ctx.fillText(cls, cx, H - 40);
+        ctx.fillText(`半径 ${fmt(R, 1)} 太陽半径`, cx, H - 20);
+        // プランク分布(ピークで規格化)
+        const planck = (w, TT) => {
+          const l = w * 1e-9;
+          return 1 / (Math.pow(l, 5) * (Math.exp(1.4388e-2 / (l * TT)) - 1));
+        };
+        const peak = planck(lmax, T);
+        g1.setRange(100, 1400, 0, 1.15);
+        g1.clear();
+        g1.plot(w => planck(w, T) / peak, 100, 1400, col === "rgb(255,255,255)" ? "#e5e7eb" : col, 2.5);
+        g1.ctx.save();
+        g1.ctx.fillStyle = "rgba(148,163,184,.25)";
+        g1.ctx.fillRect(g1.px(380), g1.py(1.15), g1.px(780) - g1.px(380), g1.py(0) - g1.py(1.15));
+        g1.ctx.fillStyle = "#6b7280"; g1.ctx.font = "11px sans-serif"; g1.ctx.textAlign = "center";
+        g1.ctx.fillText("可視光", (g1.px(380) + g1.px(780)) / 2, g1.py(1.05));
+        g1.ctx.restore();
+        if (lmax >= 100 && lmax <= 1400) g1.dot(lmax, 1, "#dc2626", 5);
+        // HR図
+        g2.setRange(30500, 2400, -3, 6);
+        g2.clear();
+        g2.plot(u => 6.3 * (Math.log10(u) - Math.log10(TSUN)), 2500, 30000, "#94a3b8", 2, [5, 4]);
+        g2.dot(T, Math.log10(L), "#dc2626", 7);
+        g2.ctx.save();
+        g2.ctx.fillStyle = "#94a3b8"; g2.ctx.font = "11px sans-serif"; g2.ctx.textAlign = "left";
+        g2.ctx.fillText("主系列", g2.px(12000), g2.py(2.6));
+        g2.ctx.fillStyle = "#f59e0b";
+        g2.ctx.fillText("巨星", g2.px(4200), g2.py(3.4));
+        g2.ctx.restore();
+        info.innerHTML =
+          `ウィーンの変位則:λ<sub>max</sub> = 2.90×10⁻³/<span class="lit">${fmt(T, 0)}</span> = <b>${fmt(lmax, 0)} nm</b>` +
+          `(${lmax < 380 ? "紫外線側" : lmax > 780 ? "赤外線側" : "可視光の中"})` +
+          `<br>L = 4πR²σT⁴ → L/L☉ = R² × (T/5772)⁴ = <span class="lit">${fmt(R, 1)}</span>² × (${fmt(T / TSUN, 2)})⁴ = ` +
+          `<b>${L >= 1000 || L < 0.01 ? sciH(L) : fmt(L, 2)} L☉</b>(= ${sciH(L * LSUN)} W)`;
+      } };
+    } },
+
+  { title: "星が光り続ける理由 — 核融合と E = mc²", short: "星のエネルギー源",
+    html: `<p>太陽は46億年ものあいだ、毎秒 3.85×10²⁶ J もの莫大なエネルギーを出し続けています。石炭を燃やす程度の化学反応では、数千年ももちません。答えは<b>原子核</b>にありました。</p>
+      <p>太陽の中心(1500万 K)では、<b>水素4個がヘリウム1個に変わる核融合</b>が起きています。ここで大事なのは:</p>
+      <p><b>水素4個の質量 &gt; ヘリウム1個の質量</b> — 反応で質量がほんの<b>0.7%</b>だけ減るのです。</p>
+      <p>消えた質量は、アインシュタインの <b>E = mc²</b> によってエネルギーに変わります。c² = 9×10¹⁶ という途方もない数がかかるので、わずかな質量から莫大なエネルギーが生まれます。</p>
+      <p>スライダーで、水素がどれだけ核融合するとどれだけのエネルギーになるか計算してみましょう。「元素はどこで作られたか」という問いの答えも、星の中の核融合です — <b>私たちの体の炭素や酸素は、昔の星の内部で作られました</b>。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const ms = makeSlider(c, { label: "核融合する水素の質量(桁:10ˣ kg)", unit: "", min: 0, max: 30, step: 0.5, value: 9, digits: 1 });
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 320, "4個の水素原子核 → ヘリウム1個 + エネルギー");
+      const ctx = cv.getContext("2d");
+      return { render(t) {
+        const mass = Math.pow(10, ms.get());
+        const dm = mass * 0.007, E = dm * CLIGHT * CLIGHT;
+        const W = cv.width, H = cv.height, cy = 120;
+        ctx.clearRect(0, 0, W, H);
+        // 反応前:4個の陽子
+        ctx.fillStyle = "#374151"; ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("水素の原子核(陽子)4個", 180, 40);
+        for (let i = 0; i < 4; i++) {
+          const a = i * Math.PI / 2 + t * 0.5;
+          chargeDot(ctx, 180 + 34 * Math.cos(a), cy + 34 * Math.sin(a), 15, true);
+        }
+        arrow(ctx, 300, cy, 400, cy, "#059669", 3);
+        ctx.fillStyle = "#059669"; ctx.fillText("核融合", 350, cy - 14);
+        // 反応後:ヘリウム
+        ctx.fillStyle = "#374151";
+        ctx.fillText("ヘリウム原子核 1個", 500, 40);
+        [[-13, -8, true], [13, -8, true], [-13, 10, false], [13, 10, false]].forEach(([dx, dy, p]) => {
+          chargeDot(ctx, 500 + dx, cy + dy, 14, p);
+        });
+        arrow(ctx, 600, cy, 690, cy, "#f59e0b", 3);
+        ctx.fillStyle = "#f59e0b"; ctx.font = "bold 14px sans-serif";
+        ctx.fillText("エネルギー", 645, cy - 14);
+        for (let i = 0; i < 8; i++) {
+          const ph = (t * 1.6 + i * 0.5) % 3;
+          ctx.strokeStyle = `rgba(245,158,11,${Math.max(0, 1 - ph / 3)})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(700 + ph * 90, cy - 40 + i * 11, 6, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        // 質量バー
+        const by = 250, bw = 320;
+        ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+        ctx.fillText("反応前の質量", 60, by - 8);
+        ctx.fillStyle = "#2563eb"; ctx.fillRect(180, by - 22, bw, 20);
+        ctx.fillStyle = "#374151";
+        ctx.fillText("反応後の質量", 60, by + 24);
+        ctx.fillStyle = "#2563eb"; ctx.fillRect(180, by + 10, bw * 0.993, 20);
+        ctx.fillStyle = "#dc2626"; ctx.fillRect(180 + bw * 0.993, by + 10, bw * 0.007 + 2, 20);
+        ctx.fillStyle = "#dc2626"; ctx.font = "12px sans-serif";
+        ctx.fillText("← この 0.7% がエネルギーに(実際の幅で描いています)", 180 + bw + 12, by + 24);
+        info.innerHTML =
+          `失われる質量 Δm = <span class="lit">${sciH(mass)}</span> kg × 0.007 = <b>${sciH(dm)} kg</b>` +
+          `<br>E = Δmc² = ${sciH(dm)} × (3.0×10⁸)² = <b>${sciH(E)} J</b>` +
+          `<br>太陽は毎秒 6×10¹¹ kg の水素を燃やして 3.85×10²⁶ J を放ち、あと約50億年輝き続けます。`;
+      } };
+    } },
+
+  { title: "まとめ — 高校の単元と天文学の対応表", short: "まとめ",
+    html: `<p>「望遠鏡には点しか映らないのに、なぜ星のことが分かるのか」— 答えは全部、高校で習う法則でした。</p>
+      <table class="map">
+        <tr><th>高校で習うこと</th><th>天文学で何が分かるか</th></tr>
+        <tr><td>万有引力・円運動(物理)</td><td>軌道の形、人工衛星の速さ、<b>天体の質量</b></td></tr>
+        <tr><td>ケプラーの法則(物理・地学)</td><td>周期から距離、距離から中心天体の質量、系外惑星の発見</td></tr>
+        <tr><td>角運動量保存(物理)</td><td>面積速度一定、星や銀河が回転する理由、降着円盤</td></tr>
+        <tr><td>逆2乗の法則(物理)</td><td>見かけの明るさと<b>距離</b>の関係(等級)</td></tr>
+        <tr><td>三角比(数学)</td><td><b>年周視差</b>による距離測定、1 pc の定義</td></tr>
+        <tr><td>ドップラー効果(物理)</td><td>星の視線速度、<b>赤方偏移と宇宙膨張</b>、連星・系外惑星の検出</td></tr>
+        <tr><td>波と光・スペクトル(物理・化学)</td><td>星に含まれる<b>元素</b>、温度、速度</td></tr>
+        <tr><td>熱放射(物理)</td><td>星の<b>色と表面温度</b>、半径、HR図</td></tr>
+        <tr><td>原子核・E = mc²(物理)</td><td>星が輝く仕組み、元素の起源、星の寿命</td></tr>
+        <tr><td>気体の状態方程式(物理・化学)</td><td>星の内部構造、星間ガスの状態</td></tr>
+      </table>
+      <p><b>覚えておきたい数値</b></p>
+      <table class="map">
+        <tr><th>量</th><th>値</th></tr>
+        <tr><td>1 天文単位(AU)</td><td>1.5×10¹¹ m(太陽 — 地球の距離。光で8分20秒)</td></tr>
+        <tr><td>1 光年</td><td>9.5×10¹⁵ m</td></tr>
+        <tr><td>1 パーセク(pc)</td><td>3.26 光年 = 3.1×10¹⁶ m</td></tr>
+        <tr><td>太陽の質量・半径・光度</td><td>2.0×10³⁰ kg、7.0×10⁸ m、3.8×10²⁶ W</td></tr>
+        <tr><td>太陽の表面温度</td><td>約 5800 K(中心は 1500万 K)</td></tr>
+        <tr><td>光速 c</td><td>3.0×10⁸ m/s</td></tr>
+      </table>
+      <p>宇宙を調べる道具は、特別なものではありません。<b>いま教科書で学んでいる法則が、そのまま宇宙に通用する</b> — それ自体が、物理学の一番おもしろい発見かもしれません。</p>`,
+    setup(box) {
+      const d = document.createElement("div");
+      d.className = "btns";
+      const b = document.createElement("button");
+      b.className = "primary";
+      b.textContent = "確認クイズで天文の問題を解く →";
+      b.addEventListener("click", () => activate("p-quiz"));
+      d.appendChild(b);
+      box.appendChild(d);
+      return null;
+    } },
+  ];
+  modules["p-astro"] = makeStory("astro", chapters);
+})();
+
 /* ---------- 14. 超ひも理論への道 ---------- */
 (() => {
   const chapters = [
@@ -3419,6 +4015,7 @@ const TABS = [
   ["p-emi", "電磁誘導"],
   ["p-quiz", "確認クイズ"],
   ["p-mol", "モルの計算"],
+  ["p-astro", "天文学の基礎"],
   ["p-string", "超ひも理論への道"],
   ["p-renorm", "繰り込みへの道"],
 ];
