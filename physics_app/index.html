@@ -202,6 +202,7 @@
         <tr><td>オームの法則</td><td>物理基礎</td><td>電気</td><td>V = RI,  P = VI</td></tr>
         <tr><td>電磁誘導</td><td>物理</td><td>電磁誘導</td><td>V = vBl,  V = −ΔΦ/Δt</td></tr>
         <tr><td>確認クイズ</td><td>共通</td><td>全単元</td><td>数値がランダムに変わる計算・知識問題</td></tr>
+        <tr><td>モルの計算</td><td>化学基礎</td><td>物質量と化学反応式</td><td>n = m/M,  N = nN<sub>A</sub>,  V = 22.4n</td></tr>
         <tr><td>超ひも理論への道</td><td>発展・読み物</td><td>高校範囲外(最先端)</td><td>8章のストーリー+シミュレーションで基礎から案内</td></tr>
         <tr><td>繰り込みへの道</td><td>発展・読み物</td><td>高校範囲外(最先端)</td><td>8章のストーリー+シミュレーションで基礎から案内</td></tr>
       </table>
@@ -517,6 +518,17 @@
     </div>
   </section>
 
+  <!-- ===== 13.5 モルの計算(化学) ===== -->
+  <section class="panel" id="p-mol">
+    <div class="card">
+      <h2>モルの計算 — 化学のいちばん大事な道具<span class="unit-tag">化学基礎</span></h2>
+      <p class="desc">「mol(モル)」は化学でつまずきやすい第一関門。でも、正体は<b>「鉛筆12本=1ダース」と同じ、まとめて数える単位</b>です。
+        8章のレクチャーで、原子量・分子量から化学反応式の計算まで、順を追って身につけます。各章のスライダーを動かして確かめながら進みましょう。</p>
+    </div>
+    <div class="card"><div class="story-nav" id="mol-nav"></div></div>
+    <div class="card" id="mol-body"></div>
+  </section>
+
   <!-- ===== 14. 超ひも理論への道 ===== -->
   <section class="panel" id="p-string">
     <div class="card">
@@ -763,6 +775,33 @@ function addFormula(parent) {
   parent.appendChild(d);
   return d;
 }
+function addSelect(parent, label, opts, onchange) {
+  const block = document.createElement("div");
+  block.className = "slider-block";
+  const lab = document.createElement("label");
+  lab.innerHTML = `<span>${label}</span>`;
+  const sel = document.createElement("select");
+  opts.forEach(([v, n]) => {
+    const o = document.createElement("option");
+    o.value = v; o.textContent = n;
+    sel.appendChild(o);
+  });
+  if (onchange) sel.addEventListener("change", onchange);
+  block.append(lab, sel);
+  parent.appendChild(block);
+  return sel;
+}
+/* 指数表記:HTML用と canvas 用 */
+const sciH = (x, d = 2) => {
+  if (!isFinite(x) || x === 0) return "0";
+  const e = Math.floor(Math.log10(Math.abs(x)));
+  return `${fmt(x / 10 ** e, d)}×10<sup>${e}</sup>`;
+};
+const sciT = (x, d = 2) => {
+  if (!isFinite(x) || x === 0) return "0";
+  const e = Math.floor(Math.log10(Math.abs(x)));
+  return `${fmt(x / 10 ** e, d)}×10${supDig(e)}`;
+};
 /* 閉じたひも(振動モードn)を描く */
 function drawLoop(ctx, cx, cy, R, amp, n, t, color) {
   ctx.strokeStyle = color; ctx.lineWidth = 3;
@@ -2240,6 +2279,22 @@ let activeId = null;
     () => ({ q: "同じ大きさの力で、軽い台車と重い台車を同じ距離だけ押した。押し終わったとき、2台で同じになっている量は?",
       choices: ["運動エネルギー", "運動量", "速度", "どれも同じにならない"], ci: 0,
       expl: "仕事 Fx = 運動エネルギーの変化。同じ力 × 同じ距離なら運動エネルギーは同じ。運動量 p = √(2mK) は重い台車の方が大きい。" }),
+    () => { const [f, M, m] = pick([["H₂O(水)", 18, 36], ["CO₂", 44, 22], ["O₂", 32, 8], ["NaCl", 58.5, 117]]);
+      const n = m / M;
+      return num(`${f}(モル質量 ${M} g/mol)が ${m} g ある。物質量は何 mol か?`,
+        n, [m * M, M / m, 2 * n], "mol", `n = m ÷ M = ${m} ÷ ${M} = ${fmt(n, 2)} mol(質量はモル質量で割る)`, 2); },
+    () => { const n = pick([0.5, 2, 3]), V = 22.4 * n;
+      return num(`標準状態(0 ℃、1気圧)で ${n} mol の気体の体積は?`,
+        V, [22.4 / n, 22.4, n * 24], "L", `標準状態では気体1 mol = 22.4 L なので、V = 22.4 × ${n} = ${fmt(V, 1)} L`, 1); },
+    () => { const c2 = pick([0.5, 2, 3]), mL = pick([200, 500]), n = c2 * mL / 1000;
+      return num(`${c2} mol/L の水溶液 ${mL} mL に溶けている溶質の物質量は?`,
+        n, [c2 * mL, c2 / mL, 2 * n], "mol", `${mL} mL = ${mL / 1000} L。n = c × V = ${c2} × ${mL / 1000} = ${fmt(n, 2)} mol(mL は L に直す)`, 2); },
+    () => { const nH = pick([2, 4, 6]);
+      return num(`2H₂ + O₂ → 2H₂O の反応で、水素 ${nH} mol が完全に反応したとき、必要な酸素は何 mol か?`,
+        nH / 2, [nH, 2 * nH, nH / 4], "mol", `係数の比 2 : 1 が mol の比。H₂ が ${nH} mol なら O₂ は ${nH}/2 = ${fmt(nH / 2, 1)} mol`, 1); },
+    () => ({ q: "「1 mol」とは何個の粒子の集まりか?",
+      choices: ["6.02×10²³ 個", "6.02×10¹⁰ 個", "1.6×10⁻¹⁹ 個", "1000 個"], ci: 0,
+      expl: "アボガドロ定数 6.02×10²³ 個 = 1 mol。この数だけ集めると、原子量・分子量に g をつけた質量になる。「モルの計算」タブ第2章参照。" }),
   ];
 
   let order = [], idx = 0, score = 0, current = null, answered = false;
@@ -2296,6 +2351,519 @@ let activeId = null;
   nextBtn.addEventListener("click", () => { idx++; show(); });
   $("quiz-restart").addEventListener("click", start);
   start();
+})();
+
+/* ---------- 13.5 モルの計算(化学) ---------- */
+(() => {
+  const NA = 6.02e23;
+  const ATOM = {
+    H:  { m: 1.0,  c: "#e5e7eb", t: "#374151", r: 0.60 },
+    C:  { m: 12.0, c: "#374151", t: "#ffffff", r: 0.95 },
+    N:  { m: 14.0, c: "#3b82f6", t: "#ffffff", r: 0.92 },
+    O:  { m: 16.0, c: "#dc2626", t: "#ffffff", r: 0.90 },
+    Na: { m: 23.0, c: "#a855f7", t: "#ffffff", r: 1.10 },
+    S:  { m: 32.0, c: "#eab308", t: "#374151", r: 1.05 },
+    Cl: { m: 35.5, c: "#22c55e", t: "#ffffff", r: 1.05 },
+  };
+  const SUBS = [
+    { f: "H₂O", name: "水", at: [["H", 2], ["O", 1]] },
+    { f: "CO₂", name: "二酸化炭素", at: [["C", 1], ["O", 2]] },
+    { f: "O₂", name: "酸素", at: [["O", 2]] },
+    { f: "NaCl", name: "塩化ナトリウム", at: [["Na", 1], ["Cl", 1]] },
+    { f: "H₂SO₄", name: "硫酸", at: [["H", 2], ["S", 1], ["O", 4]] },
+    { f: "C₆H₁₂O₆", name: "グルコース(ブドウ糖)", at: [["C", 6], ["H", 12], ["O", 6]] },
+  ];
+  const MM = s => s.at.reduce((a, [e, n]) => a + ATOM[e].m * n, 0);
+  const subOpts = SUBS.map((s, i) => [i, `${s.f} ${s.name}(M = ${fmt(MM(s), 1)} g/mol)`]);
+  const rnd = k => { const s = Math.sin(k * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+
+  function drawMolecule(ctx, cx, cy, sub, scale) {
+    const list = [];
+    sub.at.forEach(([e, n]) => { for (let i = 0; i < n; i++) list.push(e); });
+    list.sort((a, b) => ATOM[b].m - ATOM[a].m);
+    const dot = (x, y, e) => {
+      const A = ATOM[e], r = scale * A.r;
+      ctx.fillStyle = A.c;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = A.t;
+      ctx.font = `bold ${Math.max(8, Math.round(r * 1.05))}px sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(e, x, y);
+    };
+    ctx.save();
+    if (list.length <= 8) {
+      const rest = list.slice(1), R = scale * 1.7;
+      const pos = rest.map((e, i) => {
+        const a = rest.length === 1 ? 0 : -Math.PI / 2 + i * 2 * Math.PI / rest.length;
+        return [cx + R * Math.cos(a), cy + R * Math.sin(a), e];
+      });
+      ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = Math.max(2, scale * 0.22);
+      pos.forEach(([x, y]) => { ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke(); });
+      pos.forEach(([x, y, e]) => dot(x, y, e));
+      dot(cx, cy, list[0]);
+    } else {
+      const cols = Math.ceil(Math.sqrt(list.length)), sp = scale * 2.0;
+      const rows = Math.ceil(list.length / cols);
+      list.forEach((e, i) => {
+        const cxx = cx + ((i % cols) - (cols - 1) / 2) * sp;
+        const cyy = cy + (Math.floor(i / cols) - (rows - 1) / 2) * sp;
+        dot(cxx, cyy, e);
+      });
+    }
+    ctx.textBaseline = "alphabetic";
+    ctx.restore();
+  }
+
+  const chapters = [
+
+  { title: "なぜ「モル」が必要なのか — まとめて数える知恵", short: "まとめて数える",
+    html: `<p>鉛筆は12本で「1ダース」、紙は1000枚で「1連」。<b>数が多いものは、まとめて数えたほうが便利</b>ですね。モルもまったく同じ発想です。</p>
+      <p>では、化学ではどれくらいの「まとめ」が必要なのでしょう。スライダーで水の量を変えて、その中の分子の数を見てください。ほんの一滴(0.05 g)でも、分子の数は<b>兆の兆倍</b>という桁になります。</p>
+      <p>1秒に1個ずつ数えたら何年かかるかも表示されます。宇宙の年齢(約1.4×10¹⁰ 年)と比べてみてください。— こんな数を「個」で書いていたら、化学の計算は不可能です。だから化学者は、まとめ売りの単位を作りました。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const ms = makeSlider(c, { label: "水の質量", unit: "g", min: 0.05, max: 18, step: 0.05, value: 0.05, digits: 2 });
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 300, "水の中の分子(●1個=1分子。実際の数はとても描ききれません)");
+      const ctx = cv.getContext("2d");
+      return { render(t) {
+        const m = ms.get(), N = m / 18 * NA, years = N / 3.156e7;
+        const W = cv.width, H = cv.height;
+        ctx.clearRect(0, 0, W, H);
+        // 水滴
+        const dx = 165, dy = 150, ds = 30 + m * 2.2;
+        ctx.fillStyle = "rgba(37,99,235,.55)";
+        ctx.beginPath();
+        ctx.moveTo(dx, dy - ds * 1.5);
+        ctx.bezierCurveTo(dx + ds, dy - ds * 0.3, dx + ds, dy + ds, dx, dy + ds);
+        ctx.bezierCurveTo(dx - ds, dy + ds, dx - ds, dy - ds * 0.3, dx, dy - ds * 1.5);
+        ctx.fill();
+        ctx.fillStyle = "#374151"; ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(`水 ${fmt(m, 2)} g`, dx, dy + ds + 28);
+        // 拡大の吹き出し
+        const gx = 660, gy = 145, gr = 118;
+        ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(dx + ds * 0.7, dy - 20); ctx.lineTo(gx - gr, gy - 40); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx + ds * 0.7, dy + 10); ctx.lineTo(gx - gr, gy + 40); ctx.stroke();
+        ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2); ctx.stroke();
+        ctx.save();
+        ctx.beginPath(); ctx.arc(gx, gy, gr - 2, 0, Math.PI * 2); ctx.clip();
+        const nd = Math.min(520, Math.round(70 + m * 26));
+        for (let i = 0; i < nd; i++) {
+          const a = rnd(i) * 2 * Math.PI, rr = Math.sqrt(rnd(i + 900)) * gr;
+          const wob = 2.5 * Math.sin(t * 1.6 + i);
+          ctx.fillStyle = "rgba(37,99,235,.75)";
+          ctx.beginPath();
+          ctx.arc(gx + rr * Math.cos(a) + wob, gy + rr * Math.sin(a) + wob * 0.7, 3.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+        ctx.fillStyle = "#6b7280"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(`ここに描いた ${nd} 個を数えても、全体の 1/${sciT(N / nd, 1)} にしかなりません`, gx, gy + gr + 26);
+        info.innerHTML = `水 ${fmt(m, 2)} g の中の分子の数 ≒ <b>${sciH(N)} 個</b>` +
+          `<br>1秒に1個ずつ数えたら <b>${sciH(years)} 年</b> かかります(宇宙の年齢は約1.4×10¹⁰ 年)`;
+      } };
+    } },
+
+  { title: "1 mol = 6.02×10²³ 個(アボガドロ定数)", short: "アボガドロ定数",
+    html: `<p>化学者が決めた「まとめ売りの単位」が<b>モル</b>です。</p>
+      <p><b>1 mol = 6.02×10²³ 個</b> — この数を<b>アボガドロ定数 N<sub>A</sub></b> といいます。</p>
+      <p>なぜこんな半端な数?— じつは理由があります。<b>この個数だけ集めると、原子量・分子量に「g」をつけた質量になる</b>ように決められているのです(次の章の主役)。だから化学者は、はかりで質量をはかるだけで「粒子が何個あるか」が分かります。</p>
+      <p>スライダーで「10のx乗個」がどれくらいの数なのか、身近なものと比べてみましょう。地球上の砂粒を全部集めても、まだ 1 mol には遠く及びません。</p>
+      <p>ちなみに <b>1 mol の水は 18 g(大さじ1杯強)</b>。手のひらに乗る量の中に、この途方もない数の分子が入っています。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const xs = makeSlider(c, { label: "個数(10ˣ 個)", unit: "", min: 0, max: 24, step: 0.1, value: 0, digits: 1 });
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 300, "「数」のスケールくらべ(1目盛り=10倍)");
+      const ctx = cv.getContext("2d");
+      const bands = [
+        [1.2, "1〜十数個", "鉛筆1ダース(12本)。手で数えられる。"],
+        [3.5, "数百〜数千", "学校の全校生徒。名簿があれば数えられる。"],
+        [7, "数百万", "大都市の人口。"],
+        [10, "数十億", "世界の人口(約8×10⁹ 人 = 80億人)。"],
+        [19, "10¹⁸〜10¹⁹", "地球上の砂粒の総数(約7.5×10¹⁸ 個)といわれる数。"],
+        [23.5, "10²³ 台", "★ アボガドロ定数 6.02×10²³ = 1 mol。砂粒の全部よりさらに約10万倍多い!"],
+        [25, "10²⁴ 以上", "1 mol の数十倍以上。"],
+      ];
+      return { render() {
+        const x = xs.get();
+        let bi = bands.findIndex(b => x < b[0]);
+        if (bi < 0) bi = bands.length - 1;
+        const W = cv.width, H = cv.height, bx0 = 70, bx1 = W - 70, by = 175;
+        ctx.clearRect(0, 0, W, H);
+        ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(bx0, by); ctx.lineTo(bx1, by); ctx.stroke();
+        ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+        for (let m = 0; m <= 24; m += 3) {
+          const px2 = bx0 + m / 24 * (bx1 - bx0);
+          ctx.strokeStyle = "#9ca3af";
+          ctx.beginPath(); ctx.moveTo(px2, by - 5); ctx.lineTo(px2, by + 5); ctx.stroke();
+          ctx.fillStyle = "#6b7280";
+          ctx.fillText(`10${supDig(m)}`, px2, by + 20);
+        }
+        const marks = [[1.1, "1ダース", -1], [9.9, "世界の人口", 1], [18.9, "地球の砂粒", -1], [23.78, "1 mol", 1]];
+        marks.forEach(([v, name, side]) => {
+          const px2 = bx0 + v / 24 * (bx1 - bx0);
+          const isMol = name === "1 mol";
+          ctx.strokeStyle = isMol ? "#dc2626" : "#2563eb"; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(px2, by); ctx.lineTo(px2, by + side * 44); ctx.stroke();
+          ctx.fillStyle = isMol ? "#dc2626" : "#2563eb";
+          ctx.font = isMol ? "bold 13px sans-serif" : "12px sans-serif";
+          ctx.fillText(name, px2, by + side * 44 + (side > 0 ? 16 : -6));
+        });
+        const mx = bx0 + Math.min(x, 24) / 24 * (bx1 - bx0);
+        ctx.fillStyle = "#059669";
+        ctx.beginPath(); ctx.moveTo(mx, by - 12); ctx.lineTo(mx - 7, by - 24); ctx.lineTo(mx + 7, by - 24); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#059669"; ctx.font = "bold 13px sans-serif";
+        ctx.fillText(`10${supDig(Math.round(x))} 個`, mx, by - 32);
+        info.innerHTML = `10<sup>${fmt(x, 1)}</sup> 個 ≒ <b>${sciH(Math.pow(10, x))} 個</b> — <b>${bands[bi][1]}</b>:${bands[bi][2]}` +
+          `<br>1 mol の粒子数 N<sub>A</sub> = <b>6.02×10²³ 個</b>。いまの数は 1 mol の <b>${sciH(Math.pow(10, x) / NA)} 倍</b>。`;
+      } };
+    } },
+
+  { title: "モル質量 — 原子量に「g」をつけるだけ", short: "モル質量",
+    html: `<p>ここが化学の便利ポイントです。周期表に載っている<b>原子量</b>(H = 1.0、C = 12.0、O = 16.0 など)を、化学式のとおりに足すと<b>分子量(式量)</b>になります。</p>
+      <p>たとえば水 H₂O なら <b>1.0 × 2 + 16.0 = 18.0</b>。この数に <b>g/mol</b> をつけたものが<b>モル質量 M</b> です。<br>
+      → <b>水 1 mol = 18.0 g</b>。二酸化炭素 CO₂ なら 12.0 + 16.0 × 2 = 44.0 g/mol。</p>
+      <p>つまり<b>「原子量を足して g をつける」だけで、6.02×10²³ 個ぶんの質量が分かる</b>のです。物質を選んで、内訳の帯グラフと計算式を見てみましょう。</p>
+      <p>そして質量は <b>m = n × M</b>(物質量 × モル質量)で求まります。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const sel = addSelect(c, "物質を選ぶ", subOpts);
+      const ns = makeSlider(c, { label: "物質量 n", unit: "mol", min: 0.1, max: 5, step: 0.1, value: 1 });
+      const info = addFormula(box);
+      const row = addRow(box);
+      const cvm = addCanvas(row, 480, 300, "粒子1個のようす(●=原子)");
+      const cvb = addCanvas(row, 480, 300, "モル質量の内訳");
+      const ctxm = cvm.getContext("2d"), ctxb = cvb.getContext("2d");
+      return { render(t) {
+        const sub = SUBS[+sel.value], M = MM(sub);
+        const n = ns.get(), mass = n * M;
+        ctxm.clearRect(0, 0, cvm.width, cvm.height);
+        drawMolecule(ctxm, cvm.width / 2, cvm.height / 2 + 6 * Math.sin(t * 1.2), sub, sub.at.reduce((a, [, k]) => a + k, 0) > 8 ? 15 : 26);
+        ctxm.fillStyle = "#374151"; ctxm.font = "bold 16px sans-serif"; ctxm.textAlign = "center";
+        ctxm.fillText(`${sub.f}(${sub.name})`, cvm.width / 2, 28);
+        // 内訳の帯
+        const W = cvb.width, H = cvb.height;
+        ctxb.clearRect(0, 0, W, H);
+        let acc = 0;
+        const bw = W - 80, by = 110;
+        sub.at.forEach(([e, k]) => {
+          const part = ATOM[e].m * k, w = part / M * bw;
+          ctxb.fillStyle = ATOM[e].c;
+          ctxb.fillRect(40 + acc, by, w, 64);
+          ctxb.strokeStyle = "#9ca3af"; ctxb.lineWidth = 1;
+          ctxb.strokeRect(40 + acc, by, w, 64);
+          if (w > 42) {
+            ctxb.fillStyle = ATOM[e].t; ctxb.font = "bold 13px sans-serif"; ctxb.textAlign = "center";
+            ctxb.fillText(e, 40 + acc + w / 2, by + 30);
+            ctxb.font = "11px sans-serif";
+            ctxb.fillText(fmt(part, 1), 40 + acc + w / 2, by + 48);
+          }
+          acc += w;
+        });
+        ctxb.fillStyle = "#374151"; ctxb.font = "13px sans-serif"; ctxb.textAlign = "center";
+        ctxb.fillText(`モル質量 M = ${fmt(M, 1)} g/mol(1 mol ぶんの質量)`, W / 2, 90);
+        ctxb.font = "bold 15px sans-serif"; ctxb.fillStyle = "#dc2626";
+        ctxb.fillText(`${fmt(n)} mol → ${fmt(mass, 1)} g`, W / 2, 218);
+        ctxb.fillStyle = "#6b7280"; ctxb.font = "12px sans-serif";
+        ctxb.fillText("m = n × M", W / 2, 242);
+        info.innerHTML =
+          `M(${sub.f}) = ` + sub.at.map(([e, k]) => `<span class="lit">${fmt(ATOM[e].m, 1)}</span> × ${k}`).join(" + ") +
+          ` = <b>${fmt(M, 1)} g/mol</b>` +
+          `<br>m = n × M = <span class="lit">${fmt(n)}</span> mol × ${fmt(M, 1)} g/mol = <b>${fmt(mass, 1)} g</b>` +
+          `  (粒子の数は ${sciH(n * NA)} 個)`;
+      } };
+    } },
+
+  { title: "換算の三角形 — mol を通ればどこへでも行ける", short: "換算の三角形",
+    html: `<p>モルの計算でやることは、じつはこれだけです。</p>
+      <p><b>質量 m [g] ⇄ 物質量 n [mol] ⇄ 粒子の数 N [個]</b></p>
+      <p>大事なのは、<b>質量と粒子数は直接つながっていない</b>こと。かならず<b>いったん mol に直してから</b>変換します。mol は乗り換え駅のようなものです。</p>
+      <table class="map">
+        <tr><th>行き先</th><th>やること</th><th>式</th></tr>
+        <tr><td>質量 → mol</td><td>モル質量で<b>割る</b></td><td>n = m ÷ M</td></tr>
+        <tr><td>mol → 質量</td><td>モル質量を<b>かける</b></td><td>m = n × M</td></tr>
+        <tr><td>mol → 粒子数</td><td>N<sub>A</sub> を<b>かける</b></td><td>N = n × 6.02×10²³</td></tr>
+        <tr><td>粒子数 → mol</td><td>N<sub>A</sub> で<b>割る</b></td><td>n = N ÷ 6.02×10²³</td></tr>
+      </table>
+      <p>迷ったら「単位が消えるように計算する」のがコツ。g ÷ (g/mol) = mol というように、単位が答えの形になれば正解です。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const sel = addSelect(c, "物質を選ぶ", subOpts);
+      const ns = makeSlider(c, { label: "物質量 n", unit: "mol", min: 0.1, max: 5, step: 0.1, value: 2 });
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 330, "換算の三角形(矢印の上の数をかける/割る)");
+      const ctx = cv.getContext("2d");
+      return { render(t) {
+        const sub = SUBS[+sel.value], M = MM(sub), n = ns.get();
+        const W = cv.width, H = cv.height;
+        ctx.clearRect(0, 0, W, H);
+        const boxes = [
+          { x: W / 2, y: 72, w: 250, h: 66, t1: "物質量 n", t2: `${fmt(n)} mol`, c: "#059669" },
+          { x: 210, y: 240, w: 250, h: 66, t1: "質量 m", t2: `${fmt(n * M, 1)} g`, c: "#2563eb" },
+          { x: W - 210, y: 240, w: 270, h: 66, t1: "粒子の数 N", t2: `${sciT(n * NA)} 個`, c: "#dc2626" },
+        ];
+        // 矢印(往復)
+        const link = (a, b, labUp, labDown) => {
+          const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+          const ux = dx / L, uy = dy / L, off = 12;
+          const sx = a.x + ux * 60, sy = a.y + uy * 42, ex = b.x - ux * 60, ey = b.y - uy * 42;
+          const pulse = 0.5 + 0.5 * Math.sin(t * 2);
+          arrow(ctx, sx - uy * off, sy + ux * off, ex - uy * off, ey + ux * off, `rgba(107,114,128,${0.45 + 0.35 * pulse})`, 2.5);
+          arrow(ctx, ex + uy * off, ey - ux * off, sx + uy * off, sy - ux * off, "#9ca3af", 2.5);
+          const mx = (sx + ex) / 2, my = (sy + ey) / 2;
+          ctx.font = "bold 13px sans-serif"; ctx.textAlign = "center";
+          ctx.fillStyle = "#374151";
+          ctx.fillText(labUp, mx - uy * 34 - 4, my + ux * 34);
+          ctx.fillStyle = "#6b7280";
+          ctx.fillText(labDown, mx + uy * 34 + 4, my - ux * 34);
+        };
+        link(boxes[1], boxes[0], `÷ M(${fmt(M, 1)})`, `× M`);
+        link(boxes[0], boxes[2], `× Nᴀ`, `÷ Nᴀ`);
+        boxes.forEach(b => {
+          ctx.fillStyle = "#fff";
+          ctx.strokeStyle = b.c; ctx.lineWidth = 3;
+          const x0 = b.x - b.w / 2, y0 = b.y - b.h / 2, r = 12;
+          ctx.beginPath();
+          ctx.moveTo(x0 + r, y0);
+          ctx.arcTo(x0 + b.w, y0, x0 + b.w, y0 + b.h, r);
+          ctx.arcTo(x0 + b.w, y0 + b.h, x0, y0 + b.h, r);
+          ctx.arcTo(x0, y0 + b.h, x0, y0, r);
+          ctx.arcTo(x0, y0, x0 + b.w, y0, r);
+          ctx.closePath();
+          ctx.fill(); ctx.stroke();
+          ctx.fillStyle = "#6b7280"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+          ctx.fillText(b.t1, b.x, b.y - 8);
+          ctx.fillStyle = b.c; ctx.font = "bold 17px sans-serif";
+          ctx.fillText(b.t2, b.x, b.y + 16);
+        });
+        ctx.fillStyle = "#9ca3af"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("質量と粒子数は直接つながらない(かならず mol を経由)", W / 2, H - 12);
+        info.innerHTML =
+          `${sub.f}(M = ${fmt(M, 1)} g/mol)が <span class="lit">${fmt(n)}</span> mol のとき` +
+          `<br>質量 m = n × M = ${fmt(n)} × ${fmt(M, 1)} = <b>${fmt(n * M, 1)} g</b>、` +
+          `粒子数 N = n × N<sub>A</sub> = ${fmt(n)} × 6.02×10²³ = <b>${sciH(n * NA)} 個</b>`;
+      } };
+    } },
+
+  { title: "気体なら体積でも測れる(22.4 L/mol)", short: "気体の体積",
+    html: `<p>気体には、とても便利な性質があります。<b>アボガドロの法則</b>:<br>
+      <b>同温・同圧なら、どんな気体でも同じ体積の中に同じ数の分子が入っている</b>。</p>
+      <p>だから気体は、質量をはからなくても<b>体積をはかるだけで mol が分かります</b>。<br>
+      <b>標準状態(0 ℃、1気圧)で、気体 1 mol の体積は 22.4 L</b>(牛乳パック22本ぶん!)。</p>
+      <p>温度や圧力を変えると体積も変わります。それをまとめたのが<b>気体の状態方程式 PV = nRT</b> — 物理の「熱」で学ぶ式と同じものです。スライダーで確かめましょう。温度を 0 ℃、圧力を 1 気圧に戻すと、ちゃんと n × 22.4 L になります。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const ns = makeSlider(c, { label: "気体の物質量 n", unit: "mol", min: 0.2, max: 3, step: 0.1, value: 1 });
+      const Ts = makeSlider(c, { label: "温度 T", unit: "℃", min: -50, max: 300, step: 5, value: 0, digits: 0 });
+      const Ps = makeSlider(c, { label: "圧力 P", unit: "気圧", min: 0.5, max: 3, step: 0.1, value: 1 });
+      const info = addFormula(box);
+      const row = addRow(box);
+      const cv = addCanvas(row, 560, 300, "気体の入った容器(ピストンが動く。●=気体分子)");
+      const g = makeGraph(addCanvas(row, 420, 300, "物質量と体積(いまの温度・圧力で)"), { xlabel: "n [mol]", ylabel: "V [L]" });
+      const ctx = cv.getContext("2d");
+      const R = 0.0821;
+      return { render(t) {
+        const n = ns.get(), Tc = Ts.get(), P = Ps.get();
+        const T = Tc + 273.15, V = n * R * T / P;
+        const W = cv.width, H = cv.height;
+        ctx.clearRect(0, 0, W, H);
+        const x0 = 40, y0 = 60, hh = 170;
+        const wMax = W - 150, w = Math.max(40, Math.min(wMax, V / 90 * wMax));
+        ctx.fillStyle = "rgba(37,99,235,.07)";
+        ctx.fillRect(x0, y0, w, hh);
+        ctx.strokeStyle = "#374151"; ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x0, y0); ctx.lineTo(x0, y0 + hh); ctx.lineTo(x0 + w, y0 + hh);
+        ctx.moveTo(x0, y0); ctx.lineTo(x0 + w, y0);
+        ctx.stroke();
+        // ピストン
+        ctx.fillStyle = "#9ca3af";
+        ctx.fillRect(x0 + w, y0 - 6, 14, hh + 12);
+        ctx.fillRect(x0 + w + 14, y0 + hh / 2 - 6, 46, 12);
+        for (let k = 0; k < 3; k++) arrow(ctx, x0 + w + 96, y0 + 40 + k * 45, x0 + w + 66, y0 + 40 + k * 45, "#ea580c", 2);
+        ctx.fillStyle = "#ea580c"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+        ctx.fillText(`圧力 ${fmt(P)} 気圧`, x0 + w + 66, y0 + hh + 22);
+        // 分子(温度が高いほど速い)
+        const cnt = Math.round(n * 26);
+        const sp = 0.12 + T / 2400;
+        for (let i = 0; i < cnt; i++) {
+          const px2 = x0 + 8 + ((rnd(i) + sp * t * (0.5 + rnd(i + 11))) % 1) * (w - 16);
+          const py2 = y0 + 8 + ((rnd(i + 300) + sp * t * (0.5 + rnd(i + 77))) % 1) * (hh - 16);
+          ctx.fillStyle = `hsl(${Math.max(0, 220 - (Tc + 50) * 0.7)}, 75%, 52%)`;
+          ctx.beginPath(); ctx.arc(px2, py2, 4, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = "#374151"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(`V = ${fmt(V, 1)} L`, x0 + w / 2, y0 + hh + 32);
+        const vmax = 3 * R * (Ts.get() + 273.15) / P * 1.2;
+        g.setRange(0, 3, 0, Math.max(vmax, 10));
+        g.clear();
+        g.plot(u => u * R * T / P, 0, 3, "#2563eb");
+        g.guide(n, V, "#2563eb");
+        g.dot(n, V, "#2563eb");
+        const std = Math.abs(Tc) < 0.1 && Math.abs(P - 1) < 0.01;
+        info.innerHTML =
+          `PV = nRT より V = nRT/P = <span class="lit">${fmt(n)}</span> × 0.082 × ${fmt(T, 1)} / <span class="lit">${fmt(P)}</span> = <b>${fmt(V, 1)} L</b>` +
+          (std ? `<br><b>標準状態(0 ℃・1気圧)</b>なので、V = 22.4 × n = 22.4 × ${fmt(n)} = <b>${fmt(22.4 * n, 1)} L</b> と一致します ✓`
+               : `<br>標準状態(0 ℃・1気圧)なら V = 22.4 × ${fmt(n)} = ${fmt(22.4 * n, 1)} L。温度・圧力を戻して確かめてみましょう。`);
+      } };
+    } },
+
+  { title: "溶液のモル濃度(mol/L)", short: "モル濃度",
+    html: `<p>実験で使う水溶液の「濃さ」も mol で表します。</p>
+      <p><b>モル濃度 c [mol/L] = 溶質の物質量 n [mol] ÷ 溶液の体積 V [L]</b></p>
+      <p>「2 mol/L の塩酸」といえば、<b>1 L の中に 2 mol の溶質が溶けている</b>という意味です。ここでよくある間違いが<b>単位</b>。体積が mL で与えられたら、<b>1000 で割って L に直す</b>のを忘れずに。</p>
+      <p>例:2 mol/L の水溶液 500 mL に溶けている溶質は?<br>
+      → 500 mL = 0.5 L だから、n = 2 mol/L × 0.5 L = <b>1 mol</b>。</p>
+      <p>スライダーで、溶かす量と水の量を変えてみましょう。<b>同じ 1 mol でも、水が多ければ薄くなる</b>ことが色で分かります。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const sel = addSelect(c, "溶かすもの", subOpts);
+      const ns = makeSlider(c, { label: "溶質の物質量 n", unit: "mol", min: 0.05, max: 2, step: 0.05, value: 1, digits: 2 });
+      const Vs = makeSlider(c, { label: "溶液の体積 V", unit: "L", min: 0.1, max: 2, step: 0.05, value: 1, digits: 2 });
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 320, "ビーカーの中(色が濃いほど高濃度。●=溶質の粒子)");
+      const ctx = cv.getContext("2d");
+      return { render(t) {
+        const sub = SUBS[+sel.value], M = MM(sub);
+        const n = ns.get(), V = Vs.get(), conc = n / V;
+        const W = cv.width, H = cv.height;
+        ctx.clearRect(0, 0, W, H);
+        const bw = 260, bx = W / 2 - bw / 2, btop = 40, bh = 220;
+        const lh = Math.max(20, V / 2 * (bh - 20));
+        const ly = btop + bh - lh;
+        ctx.fillStyle = `rgba(37,99,235,${Math.min(0.85, 0.08 + conc * 0.36)})`;
+        ctx.fillRect(bx + 3, ly, bw - 6, lh);
+        ctx.strokeStyle = "#6b7280"; ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(bx, btop); ctx.lineTo(bx, btop + bh); ctx.lineTo(bx + bw, btop + bh); ctx.lineTo(bx + bw, btop);
+        ctx.stroke();
+        const cnt = Math.min(180, Math.round(n * 60));
+        for (let i = 0; i < cnt; i++) {
+          const px2 = bx + 12 + rnd(i) * (bw - 24);
+          const py2 = ly + 10 + ((rnd(i + 500) + 0.05 * t * (0.4 + rnd(i + 31))) % 1) * (lh - 20);
+          ctx.fillStyle = "#1e3a8a";
+          ctx.beginPath(); ctx.arc(px2, py2, 3.2, 0, Math.PI * 2); ctx.fill();
+        }
+        // 目盛り
+        ctx.font = "11px sans-serif"; ctx.fillStyle = "#6b7280"; ctx.textAlign = "right";
+        for (let v = 0.5; v <= 2; v += 0.5) {
+          const y = btop + bh - v / 2 * (bh - 20);
+          ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(bx, y); ctx.lineTo(bx + 14, y); ctx.stroke();
+          ctx.fillText(`${fmt(v, 1)} L`, bx - 6, y + 4);
+        }
+        ctx.fillStyle = "#374151"; ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(`${fmt(conc, 2)} mol/L`, W / 2, btop + bh + 34);
+        ctx.font = "12px sans-serif"; ctx.fillStyle = "#6b7280";
+        ctx.fillText(`${sub.f} を ${fmt(n, 2)} mol(= ${fmt(n * M, 1)} g)溶かして、全体を ${fmt(V, 2)} L にした`, W / 2, btop + bh + 56);
+        info.innerHTML =
+          `c = n ÷ V = <span class="lit">${fmt(n, 2)}</span> mol ÷ <span class="lit">${fmt(V, 2)}</span> L = <b>${fmt(conc, 2)} mol/L</b>` +
+          `<br>この溶質をはかりとるのに必要な質量は m = n × M = ${fmt(n, 2)} × ${fmt(M, 1)} = <b>${fmt(n * M, 1)} g</b>` +
+          `(${fmt(V * 1000, 0)} mL = ${fmt(V, 2)} L に注意)`;
+      } };
+    } },
+
+  { title: "化学反応式の計算 — 係数の比は mol の比", short: "反応式の計算",
+    html: `<p>いよいよ本番。化学反応式の<b>係数の比が、そのまま反応する mol の比</b>になります。</p>
+      <p><b>2H₂ + O₂ → 2H₂O</b>(水素が燃えて水ができる)<br>
+      これは「水素分子2個と酸素分子1個から水分子2個」であると同時に、<b>「水素2 mol と酸素1 mol から水2 mol」</b>という意味でもあります。</p>
+      <p><b>ここが重要:比は「個数(mol)」であって、質量の比ではありません。</b>質量の比にしたければ、それぞれモル質量をかけます。</p>
+      <p>スライダーで水素と酸素の量を変えてみましょう。片方が余ることがありますね。<b>先になくなったほうが反応を止めてしまう</b>(限定反応物)ので、生成する水の量はそちらで決まります。反応前後で<b>質量の合計は変わらない</b>(質量保存の法則)ことも確認できます。</p>`,
+    setup(box) {
+      const c = addControls(box);
+      const h2s = makeSlider(c, { label: "水素 H₂ の物質量", unit: "mol", min: 1, max: 8, step: 1, value: 4, digits: 0 });
+      const o2s = makeSlider(c, { label: "酸素 O₂ の物質量", unit: "mol", min: 1, max: 5, step: 1, value: 1, digits: 0 });
+      const info = addFormula(box);
+      const cv = addCanvas(box, 1000, 360, "反応のようす(●の集まり1つ=1 mol ぶんの分子)");
+      const ctx = cv.getContext("2d");
+      const H2 = { f: "H₂", at: [["H", 2]] }, O2 = { f: "O₂", at: [["O", 2]] }, H2O = { f: "H₂O", at: [["H", 2], ["O", 1]] };
+      return { render(t) {
+        const nH = h2s.get(), nO = o2s.get();
+        const k = Math.min(nH / 2, nO);
+        const made = 2 * k, leftH = nH - 2 * k, leftO = nO - k;
+        const W = cv.width, H = cv.height;
+        ctx.clearRect(0, 0, W, H);
+        const drawGroup = (x, y, sub, count, label) => {
+          ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+          ctx.fillText(label, x, y - 62);
+          const show = Math.min(Math.round(count * 2), 12);
+          for (let i = 0; i < show; i++) {
+            const col = i % 4, rw = Math.floor(i / 4);
+            drawMolecule(ctx, x - 42 + col * 28, y - 24 + rw * 32 + 2 * Math.sin(t * 1.5 + i), sub, 8);
+          }
+          if (count === 0) {
+            ctx.fillStyle = "#9ca3af"; ctx.font = "13px sans-serif";
+            ctx.fillText("なし", x, y);
+          }
+        };
+        // 反応前
+        ctx.fillStyle = "#1e3a8a"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "left";
+        ctx.fillText("反応前", 30, 30);
+        drawGroup(130, 105, H2, nH, `H₂  ${fmt(nH)} mol(${fmt(nH * 2, 1)} g)`);
+        ctx.fillStyle = "#374151"; ctx.font = "bold 20px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("+", 250, 105);
+        drawGroup(370, 105, O2, nO, `O₂  ${fmt(nO)} mol(${fmt(nO * 32, 1)} g)`);
+        arrow(ctx, 500, 105, 590, 105, "#059669", 3);
+        ctx.fillStyle = "#059669"; ctx.font = "12px sans-serif";
+        ctx.fillText("反応", 545, 92);
+        drawGroup(700, 105, H2O, made, `H₂O  ${fmt(made)} mol(${fmt(made * 18, 1)} g)`);
+        // 反応後の残り
+        ctx.fillStyle = "#1e3a8a"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "left";
+        ctx.fillText("反応後に残ったもの", 30, 240);
+        drawGroup(130, 300, H2, leftH, `H₂ ${fmt(leftH)} mol`);
+        drawGroup(370, 300, O2, leftO, `O₂ ${fmt(leftO)} mol`);
+        ctx.textAlign = "left"; ctx.font = "13px sans-serif";
+        ctx.fillStyle = leftH > 0.01 ? "#ea580c" : leftO > 0.01 ? "#ea580c" : "#059669";
+        ctx.fillText(
+          leftH > 0.01 ? `酸素が先になくなった → 酸素が限定反応物。水素が ${fmt(leftH)} mol 余る`
+          : leftO > 0.01 ? `水素が先になくなった → 水素が限定反応物。酸素が ${fmt(leftO)} mol 余る`
+          : "ちょうど 2 : 1 で反応し、どちらも余りません(過不足なし)", 560, 262);
+        ctx.fillStyle = "#6b7280"; ctx.font = "12px sans-serif";
+        ctx.fillText(`質量の合計:反応前 ${fmt(nH * 2 + nO * 32, 1)} g = 反応後 ${fmt(made * 18 + leftH * 2 + leftO * 32, 1)} g(質量保存)`, 560, 288);
+        info.innerHTML =
+          `<b>2H₂ + O₂ → 2H₂O</b>:係数の比 2 : 1 : 2 = mol の比` +
+          `<br>H₂ <span class="lit">${fmt(nH)}</span> mol と O₂ <span class="lit">${fmt(nO)}</span> mol → 反応できるのは H₂ ${fmt(2 * k)} mol と O₂ ${fmt(k)} mol。` +
+          `生成する水は <b>${fmt(made)} mol = ${fmt(made * 18, 1)} g</b>` +
+          (leftH > 0.01 || leftO > 0.01 ? `(${leftH > 0.01 ? "H₂" : "O₂"} が ${fmt(Math.max(leftH, leftO))} mol 余る)` : "(過不足なし)");
+      } };
+    } },
+
+  { title: "まとめ — これだけ覚えれば計算できる", short: "まとめ",
+    html: `<p>モルの計算で使う道具は、たったこれだけです。</p>
+      <table class="map">
+        <tr><th>知りたいこと</th><th>式</th><th>ポイント</th></tr>
+        <tr><td>物質量 ⇄ 質量</td><td>n = m/M,  m = nM</td><td>M は原子量を足して g をつけた数</td></tr>
+        <tr><td>物質量 ⇄ 粒子数</td><td>N = n × 6.02×10²³</td><td>アボガドロ定数をかける/割る</td></tr>
+        <tr><td>気体の体積(標準状態)</td><td>V = 22.4 × n</td><td>0 ℃・1気圧のときだけ。一般には PV = nRT</td></tr>
+        <tr><td>モル濃度</td><td>c = n/V</td><td>V は<b>L</b>。mL なら 1000 で割る</td></tr>
+        <tr><td>反応する量の比</td><td>化学反応式の係数の比</td><td>質量の比ではなく<b>mol の比</b></td></tr>
+      </table>
+      <p><b>つまずきやすいポイント3つ</b></p>
+      <ol style="line-height:2.1">
+        <li><b>質量から粒子数を直接出そうとする</b> → かならず mol を経由(第4章の三角形)</li>
+        <li><b>22.4 L を気体以外や、標準状態でないときに使う</b> → 条件を必ず確認</li>
+        <li><b>mL と L の混同</b> → モル濃度は必ず L で計算</li>
+      </ol>
+      <p>計算に迷ったら<b>単位を見る</b>のが最強のコツです。g ÷ (g/mol) = mol、mol × (g/mol) = g というように、単位がほしい答えの形になっていれば、かけ算・わり算の向きは合っています。</p>
+      <p>物理で学んだ「気体の状態方程式 PV = nRT」の n が、まさにこの物質量です。物理と化学は同じ世界を別の角度から見ています。</p>`,
+    setup(box) {
+      const d = document.createElement("div");
+      d.className = "btns";
+      const b = document.createElement("button");
+      b.className = "primary";
+      b.textContent = "確認クイズでモルの問題を解く →";
+      b.addEventListener("click", () => activate("p-quiz"));
+      d.appendChild(b);
+      box.appendChild(d);
+      return null;
+    } },
+  ];
+  modules["p-mol"] = makeStory("mol", chapters);
 })();
 
 /* ---------- 14. 超ひも理論への道 ---------- */
@@ -2850,6 +3418,7 @@ const TABS = [
   ["p-ohm", "オームの法則"],
   ["p-emi", "電磁誘導"],
   ["p-quiz", "確認クイズ"],
+  ["p-mol", "モルの計算"],
   ["p-string", "超ひも理論への道"],
   ["p-renorm", "繰り込みへの道"],
 ];
